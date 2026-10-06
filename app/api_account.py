@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import memory
+from app import guardrails, learning, memory
 from app.auth import (AUTH_COOKIE, current_user, hash_password, make_token, require_user,
                       validate_credentials, verify_password)
 from app.config import settings
@@ -38,6 +38,11 @@ class NewMemory(BaseModel):
     category: Literal["intent_calibration", "domain_knowledge"] = "intent_calibration"
 
 
+class Feedback(BaseModel):
+    exchange_id: int
+    rating: Literal[1, -1]   # thumbs up / thumbs down
+
+
 class MemoryUpdate(BaseModel):
     rule_text: str | None = Field(default=None, max_length=1000)
     category: Literal["intent_calibration", "domain_knowledge"] | None = None
@@ -45,7 +50,15 @@ class MemoryUpdate(BaseModel):
 
 
 def _profile(user: User) -> dict:
-    return {"username": user.username, "tier": user.tier, "memory_enabled": user.memory_enabled}
+    return {
+        "username": user.username,
+        "tier": user.tier,
+        "memory_enabled": user.memory_enabled,
+        "clarify_style": learning.clarify_style(user.clarify_score),
+        "is_participant": user.is_participant,
+        "consent_given_at": user.consent_given_at.isoformat() if user.consent_given_at else None,
+        "ethics_approved": settings.ethics_approved,
+    }
 
 
 def _start_fresh_conversation(request: Request, response: Response) -> None:
@@ -65,6 +78,7 @@ def _log_in(request: Request, response: Response, user: User) -> None:
 
 @router.post("/auth/register", status_code=201)
 def register(body: Credentials, request: Request, response: Response, db: Session = Depends(get_db)) -> dict:
+    guardrails.enforce(guardrails.auth_limiter, guardrails.client_key(request))
     username = body.username.strip()
     error = validate_credentials(username, body.password)
     if error:
@@ -80,6 +94,8 @@ def register(body: Credentials, request: Request, response: Response, db: Sessio
 
 @router.post("/auth/login")
 def login(body: Credentials, request: Request, response: Response, db: Session = Depends(get_db)) -> dict:
+    # Limits password guessing: a few attempts per 15 minutes per IP address.
+    guardrails.enforce(guardrails.auth_limiter, guardrails.client_key(request))
     user = db.scalar(select(User).where(User.username == body.username.strip()))
     # Same message for "no such user" and "wrong password", so attackers can't
     # discover which usernames exist.
@@ -150,3 +166,17 @@ def remove_memory(item_id: int, user: User = Depends(require_user),
 @router.delete("/memory")
 def remove_all_memory(user: User = Depends(require_user), db: Session = Depends(get_db)) -> dict:
     return {"deleted": memory.delete_all(db, user)}
+
+
+# --- Feedback on replies ---------------------------------------------------------------
+
+@router.post("/feedback", status_code=204)
+def give_feedback(body: Feedback, user: User = Depends(require_user),
+                  db: Session = Depends(get_db)) -> None:
+    """Thumbs up/down: counts for or against the memory items used in that reply."""
+    try:
+        learning.record_feedback(db, user, body.exchange_id, body.rating)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except learning.FeedbackError as exc:
+        raise HTTPException(409, str(exc))

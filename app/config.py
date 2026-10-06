@@ -31,6 +31,9 @@ class Settings:
     llm_provider: str = os.getenv("LLM_PROVIDER", "anthropic")
     llm_api_key: str = os.getenv("LLM_API_KEY", "")
     llm_model: str = os.getenv("LLM_MODEL", "")
+    # Optional cheaper/faster model for background jobs like memory extraction.
+    # Falls back to LLM_MODEL when not set.
+    llm_fast_model: str = os.getenv("LLM_FAST_MODEL", "") or os.getenv("LLM_MODEL", "")
     llm_max_tokens: int = _int("LLM_MAX_TOKENS", 800)
 
     # Retrieval (RAG)
@@ -58,6 +61,21 @@ class Settings:
     # Per-user memory
     memory_max_items_in_prompt: int = _int("MEMORY_MAX_ITEMS_IN_PROMPT", 8)
     memory_rule_max_chars: int = _int("MEMORY_RULE_MAX_CHARS", 300)
+    # Learn memories automatically from conversations (Phase 3)
+    auto_learn: bool = os.getenv("AUTO_LEARN", "true").lower() == "true"
+
+    # Guardrails: maximum requests per person
+    rate_limit_chat_per_minute: int = _int("RATE_LIMIT_CHAT_PER_MINUTE", 20)
+    rate_limit_auth_per_15min: int = _int("RATE_LIMIT_AUTH_PER_15MIN", 10)
+
+    # Research participation. Keep false until the human research ethics
+    # application is approved: every log is then marked as synthetic/demo data
+    # and the consent screen warns not to enter real personal information.
+    ethics_approved: bool = os.getenv("ETHICS_APPROVED", "false").lower() == "true"
+
+    # Admin dashboard (/admin). Leave ADMIN_PASSWORD empty to disable it.
+    admin_username: str = os.getenv("ADMIN_USERNAME", "admin")
+    admin_password: str = os.getenv("ADMIN_PASSWORD", "")
 
 
 settings = Settings()

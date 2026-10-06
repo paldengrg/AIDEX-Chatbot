@@ -73,7 +73,7 @@ def test_relevance_prefers_intent_rules_and_keyword_matches():
 
 
 def test_prompt_includes_memory_section_only_when_given():
-    mem = [{"category": "intent_calibration", "rule_text": "Prefers bullet points"}]
+    mem = [{"id": 1, "category": "intent_calibration", "rule_text": "Prefers bullet points"}]
     assert "<user_memory>" in build_system_prompt([], mem)
     assert "Prefers bullet points" in build_system_prompt([], mem)
     assert "<user_memory>" not in build_system_prompt([], [])

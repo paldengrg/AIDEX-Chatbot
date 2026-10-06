@@ -62,11 +62,40 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function addMessage(role, text, sources, memoryUsed) {
+  // `info` (bot replies only) is the API response: sources, memory_used,
+  // learned and exchange_id.
+  function addMessage(role, text, info) {
     if (welcome) welcome.hidden = true;
+    info = info || {};
 
     const msg = document.createElement("div");
     msg.className = "msg " + role;
+
+    // "Noted: ..." when the assistant learned something from the last message.
+    (info.learned || []).forEach((item) => {
+      const note = document.createElement("div");
+      note.className = "learned-note";
+      note.textContent = `Noted for next time: ${item.rule_text}`;
+      const manage = document.createElement("button");
+      manage.type = "button";
+      manage.className = "link-btn";
+      manage.textContent = "Review";
+      manage.addEventListener("click", () => window.AIDX.openAccount && window.AIDX.openAccount());
+      // One click to take it back: the user stays in control of what is remembered.
+      const undo = document.createElement("button");
+      undo.type = "button";
+      undo.className = "link-btn";
+      undo.textContent = "Undo";
+      undo.addEventListener("click", async () => {
+        const res = await fetch(`/api/memory/${item.id}`, { method: "DELETE" }).catch(() => null);
+        if (res && res.ok) {
+          note.textContent = "Okay, I won't remember that.";
+          if (window.AIDX.reloadMemory) window.AIDX.reloadMemory();
+        }
+      });
+      note.append(" ", manage, " · ", undo);
+      msg.appendChild(note);
+    });
 
     const bubble = document.createElement("div");
     bubble.className = "bubble";
@@ -76,8 +105,8 @@
 
     // Show what the answer was based on (explainability): lab documents and,
     // for signed-in users, which of their personal memory items were used.
-    sources = sources || [];
-    memoryUsed = memoryUsed || [];
+    const sources = info.sources || [];
+    const memoryUsed = info.memory_used || [];
     if (sources.length || memoryUsed.length) {
       const details = document.createElement("details");
       details.className = "sources";
@@ -105,9 +134,45 @@
       msg.appendChild(details);
     }
 
+    if (info.exchange_id) msg.appendChild(feedbackButtons(info.exchange_id));
+
     messagesEl.appendChild(msg);
     scrollToBottom();
     return msg;
+  }
+
+  // Thumbs up/down: tells the memory system whether this reply helped.
+  function feedbackButtons(exchangeId) {
+    const box = document.createElement("div");
+    box.className = "feedback";
+    const make = (rating, label, path) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "thumb";
+      b.setAttribute("aria-label", label);
+      b.title = label;
+      b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+      b.addEventListener("click", async () => {
+        box.querySelectorAll("button").forEach((x) => (x.disabled = true));
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exchange_id: exchangeId, rating }),
+        }).catch(() => null);
+        if (res && res.ok) {
+          b.classList.add("chosen");
+          b.setAttribute("aria-pressed", "true");
+        } else {
+          box.querySelectorAll("button").forEach((x) => (x.disabled = false));
+        }
+      });
+      return b;
+    };
+    box.append(
+      make(1, "Helpful", "M7 10v11H3V10h4zm0 0l4-8a3 3 0 013 3v4h5.5a2 2 0 012 2.3l-1.4 8A2 2 0 0118.1 21H7"),
+      make(-1, "Not helpful", "M17 14V3h4v11h-4zm0 0l-4 8a3 3 0 01-3-3v-4H4.5a2 2 0 01-2-2.3l1.4-8A2 2 0 015.9 3H17"),
+    );
+    return box;
   }
 
   function showTyping() {
@@ -144,7 +209,7 @@
         const detail = typeof data.detail === "string" ? data.detail : "Sorry, something went wrong.";
         addMessage("bot error", detail);
       } else {
-        addMessage("bot", data.reply, data.sources, data.memory_used);
+        addMessage("bot", data.reply, data);
       }
     } catch (err) {
       typing.remove();
