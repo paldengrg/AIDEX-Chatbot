@@ -117,6 +117,32 @@ def test_missing_file_and_invalid_json_are_reported(tmp_path):
         knowledge.load(tmp_path)
 
 
+def test_record_file_in_the_wrong_encoding_is_reported_by_name(tmp_path):
+    # A Windows editor saving as "ANSI" (cp1252) instead of UTF-8.
+    write_data(tmp_path, people=[{**PEOPLE[0], "name": "Prof Merigó"}, PEOPLE[1]])
+    path = tmp_path / "people.json"
+    path.write_bytes(json.dumps(json.loads(path.read_text(encoding="utf-8")),
+                                ensure_ascii=False).encode("cp1252"))
+    with pytest.raises(knowledge.KnowledgeError, match="people.json: not UTF-8 text"):
+        knowledge.load(tmp_path)
+
+
+def test_page_in_the_wrong_encoding_is_reported_by_name(data_dir):
+    (data_dir / "news.md").write_bytes("# News\n\nMerigó visited.\n".encode("cp1252"))
+    with pytest.raises(knowledge.KnowledgeError, match="news.md: not UTF-8 text"):
+        knowledge.build_entries(data_dir)
+
+
+def test_files_saved_with_a_byte_order_mark_load_cleanly(data_dir):
+    # Notepad's "UTF-8 with BOM" and PowerShell 5 add these three bytes.
+    people = data_dir / "people.json"
+    people.write_bytes(b"\xef\xbb\xbf" + people.read_bytes())
+    (data_dir / "about.md").write_bytes(
+        b"\xef\xbb\xbf" + "# About\n\n## Mission\nBetter decisions.\n".encode("utf-8"))
+    entries = entries_by_id(data_dir)
+    assert entries["about.md#0"].text == "About > Mission\nBetter decisions."  # no junk entry
+
+
 def test_items_list_is_required(tmp_path):
     write_data(tmp_path)
     (tmp_path / "themes.json").write_text('{"themes": []}', encoding="utf-8")
@@ -172,6 +198,29 @@ def test_name_tokens_are_the_distinctive_words_of_a_name(name, tokens):
     assert knowledge.name_tokens(name) == tokens
 
 
+TITLES = {
+    "emfe": "EMFE: A lightweight, explainable machine learning framework for malaria cell classification",
+    "mcdm": "Credibility-Weighted Evidence Aggregation Using Hybrid LLM–MCDM for Review-Driven Decision Analysis",
+    "energy": "Harnessing AI-driven large language models (LLMs) for enhanced forecasting of wind and solar energy",
+    "layer": "The Human Layer of Agentic AI Memory: What Self-Improving LLM Systems Actually Learn in Production",
+    "twin": "Twin Minds in Cyber-Defense: A Dual-Agent Framework for Safe Automated Assessment in Security Education",
+    "jmo": "From regional roots to global reach: A 30-year bibliometric analysis of the Journal of Management & Organization",
+}
+
+
+@pytest.mark.parametrize("query, expected", [
+    ("What is the EMFE paper about?", ["emfe"]),               # an acronym found in one title
+    ("tell me about the mcdm preprint", ["mcdm"]),
+    ("What is the Human Layer chapter about?", ["layer"]),     # two words found in one title
+    ("the twin minds paper", ["twin"]),
+    ("Which papers use LLMs?", []),           # "LLM" is in several titles, so it names none
+    ("How can I reach the lab?", []),         # one ordinary title word is not enough
+    ("Is there a framework for that?", []),   # "framework" is in several titles
+])
+def test_papers_are_named_by_acronym_or_two_distinctive_title_words(query, expected):
+    assert knowledge.papers_named(query, TITLES) == expected
+
+
 # --- Search entries -------------------------------------------------------------------
 
 def entries_by_id(folder):
@@ -210,17 +259,21 @@ def test_person_entry_lists_all_their_papers_and_links_best_profile(data_dir):
                                     "Prof Director, Director\n")
     assert "Research themes (from their publications): AI for Learning, Agentic AI" in director.text
     assert "Publications (2):\n- Paper A (2026)\n- Paper B (2025)" in director.text
+    assert director.role == "Director"
+    assert director.text.endswith("Links: University profile https://example.edu/director")
+    assert entries["person:student"].text.endswith("Links: Google Scholar https://scholar.example/s")
     assert director.url == "https://example.edu/director"           # profile first
     assert entries["person:student"].url == "https://scholar.example/s"  # then scholar
 
 
 def test_person_without_papers_or_links_still_builds(tmp_path):
     newcomer = {"id": "new", "name": "New Member", "role": "Research assistant",
-                "bio": "Joined recently.", "author_names": ["Nobody, X."], "links": {}}
+                "bio": "Joined recently.", "author_names": [], "links": {}}
     write_data(tmp_path, people=[*PEOPLE, newcomer])
     e = entries_by_id(tmp_path)["person:new"]
     assert "No publications listed yet." in e.text
     assert "Research themes" not in e.text
+    assert "Links:" not in e.text
     assert e.url == knowledge.SITE_URL + "#people"
 
 
@@ -255,8 +308,9 @@ def test_markdown_pages_become_page_entries_with_site_links(data_dir):
     (data_dir / "extra.md").write_text("# Extra\n\nSome text.\n", encoding="utf-8")
     entries = entries_by_id(data_dir)
     about = entries["about.md#0"]
+    # The page title is kept with the heading, so a source never reads just "Mission".
     assert (about.kind, about.title, about.url, about.source) == (
-        "page", "Mission", knowledge.SITE_URL + "#about", "about.md")
+        "page", "About: Mission", knowledge.SITE_URL + "#about", "about.md")
     assert about.text == "About > Mission\nBetter decisions."
     assert entries["extra.md#0"].url == knowledge.SITE_URL  # unknown page -> site root
 

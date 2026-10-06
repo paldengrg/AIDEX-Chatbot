@@ -121,12 +121,13 @@ def _unique(docs: list[dict]) -> list[dict]:
 def gather_context(query: str) -> tuple[list[dict], list[dict]]:
     """Return (documents for the prompt, documents found for this question).
 
-    Found = people named in the question plus the entries closest in meaning;
-    these are shown to the user as sources. The prompt also always gets the
-    three overview lists (every theme, paper and person), because search on
-    its own ranks them too low for questions like "what has the lab published?".
+    Found = people and papers named in the question plus the entries closest
+    in meaning; these are shown to the user as sources. The prompt also always
+    gets the three overview lists (every theme, paper and person), because
+    search on its own ranks them too low for questions like "what has the lab
+    published?".
     """
-    found = _unique(rag.people_named(query) + rag.retrieve(query))
+    found = _unique(rag.people_named(query) + rag.papers_named(query) + rag.retrieve(query))
     return _unique(found + rag.overviews()), found
 
 

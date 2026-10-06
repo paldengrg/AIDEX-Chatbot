@@ -20,7 +20,7 @@ North Sydney campus.
 
 def test_chunks_one_per_section_with_title_context():
     chunks = chunk_markdown(SAMPLE, "join.md")
-    assert [c.title for c in chunks] == ["Internships", "Contact"]
+    assert [c.title for c in chunks] == ["Join the lab: Internships", "Join the lab: Contact"]
     assert chunks[1].text.startswith("Join the lab > Contact")
     assert chunks[0].id == "join.md#0"
 

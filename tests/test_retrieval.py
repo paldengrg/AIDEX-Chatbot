@@ -107,10 +107,28 @@ def test_healthcare_question_reaches_the_health_papers():
     ("What has Walayat Hussain published?", "person:walayat-hussain"),
     ("what has hussain worked on", "person:walayat-hussain"),
     ("Tell me about Nazmul's research", "person:nazmul-hossain"),
+    ("Who is the director of the lab?", "person:walayat-hussain"),   # by role
+    ("Are there any PhD candidates?", "person:nazmul-hossain"),
 ])
 def test_people_named_in_the_question_are_sources(query, person):
     _, sources = chat.gather_context(query)
     assert person in ids(sources)
+
+
+def test_follow_up_about_a_person_keeps_their_entry():
+    history = [{"role": "user", "content": "Who is the director of the lab?"},
+               {"role": "assistant", "content": "Associate Professor Walayat Hussain."}]
+    _, sources = chat.gather_context(chat.retrieval_query("What is his background?", history))
+    assert "person:walayat-hussain" in ids(sources)
+
+
+@pytest.mark.parametrize("query, paper", [
+    ("What is the EMFE paper about?", "publication:emfe-malaria"),
+    ("What is the FSLSM paper about?", "publication:static-to-dynamic-personalization"),
+])
+def test_papers_named_by_acronym_are_sources(query, paper):
+    _, sources = chat.gather_context(query)
+    assert paper in ids(sources)
 
 
 def test_name_matching_does_not_confuse_hussain_and_hossain():

@@ -7,10 +7,11 @@ How it works:
      meaning) using a small local model, and stores it.
   2. RETRIEVE: for a question, ChromaDB embeds the question the same way and
      returns the entries whose vectors are closest in meaning.
-  3. Because the small embedding model is weak on names and list questions,
-     two simple helpers back it up: people_named() finds people mentioned by
-     name, and overviews() returns the lists of all themes, papers and people,
-     which chat.py always gives to the model.
+  3. Because the small embedding model is weak on names, acronyms and list
+     questions, simple helpers back it up: people_named() and papers_named()
+     find people and papers mentioned by name, and overviews() returns the
+     lists of all themes, papers and people, which chat.py always gives to
+     the model.
 
 The retrieved entries are pasted into the prompt so the model answers from the
 lab's real content instead of guessing. This is the shared "domain knowledge"
@@ -78,8 +79,8 @@ def ingest() -> int:
         _collection.add(
             ids=[e.id for e in entries],
             documents=[e.text for e in entries],
-            metadatas=[{"kind": e.kind, "title": e.title, "url": e.url, "source": e.source}
-                       for e in entries],
+            metadatas=[{"kind": e.kind, "title": e.title, "url": e.url, "source": e.source,
+                        "role": e.role} for e in entries],
         )
     return len(entries)
 
@@ -111,16 +112,30 @@ def overviews() -> list[dict]:
 
 
 def people_named(query: str) -> list[dict]:
-    """Person entries whose name appears in the query ("Hussain", "Nazmul", ...).
+    """Person entries the query names ("Hussain", "Nazmul") or asks about by
+    role ("the director", "PhD candidates").
 
     The embedding model is weak on names, so a question naming someone could
     otherwise miss their entry entirely.
     """
-    asked = knowledge.words(query)
-    result = get_collection().get(where={"kind": "person"}, include=["documents", "metadatas"])
-    return [_hit(i, text, meta, None) for i, text, meta
-            in zip(result["ids"], result["documents"], result["metadatas"])
-            if knowledge.name_tokens(meta["title"]) & asked]
+    asked, lowered = knowledge.words(query), query.lower()
+    return [hit for hit, meta in _entries_of_kind("person")
+            if knowledge.name_tokens(meta["title"]) & asked
+            or (meta.get("role") and meta["role"].lower() in lowered)]
+
+
+def papers_named(query: str) -> list[dict]:
+    """Publication entries the query names by acronym ("EMFE") or title words."""
+    papers = _entries_of_kind("publication")
+    named = set(knowledge.papers_named(query, {hit["id"]: hit["title"] for hit, _ in papers}))
+    return [hit for hit, _ in papers if hit["id"] in named]
+
+
+def _entries_of_kind(kind: str) -> list[tuple[dict, dict]]:
+    """Every entry of one kind, as (hit, metadata) pairs."""
+    result = get_collection().get(where={"kind": kind}, include=["documents", "metadatas"])
+    return [(_hit(i, text, meta, None), meta) for i, text, meta
+            in zip(result["ids"], result["documents"], result["metadatas"])]
 
 
 def _hit(entry_id: str, text: str, meta: dict, distance: float | None) -> dict:

@@ -28,7 +28,7 @@ SITE_URL = "https://aidxlab.github.io/"
 
 # Bump this when the way entries are built changes: the index is then rebuilt
 # on the next start even though no data file changed.
-INDEX_VERSION = "3"
+INDEX_VERSION = "4"
 
 # Where each markdown page lives on the lab website (its citation link).
 PAGE_URLS = {
@@ -47,7 +47,9 @@ PUBLICATION_TYPES = {
     "preprint": ("Preprint", "Preprints"),
 }
 
-LINK_KINDS = ("profile", "scholar", "linkedin")
+# Allowed person links and how each is named in the text the model reads.
+LINK_LABELS = {"profile": "University profile", "scholar": "Google Scholar", "linkedin": "LinkedIn"}
+LINK_KINDS = tuple(LINK_LABELS)
 
 # Required fields of each record file and their types.
 SCHEMAS = {
@@ -57,6 +59,9 @@ SCHEMAS = {
     "people.json": {"id": str, "name": str, "role": str, "bio": str,
                     "author_names": list, "links": dict},
 }
+
+# Lists that may be empty: a new team member has no publications yet.
+MAY_BE_EMPTY = {"author_names"}
 
 # How a type is named in error messages.
 TYPE_NAMES = {str: "text", int: "a whole number", list: "a list", dict: "an object"}
@@ -75,6 +80,7 @@ class Entry:
     url: str     # citation link, always https://
     source: str  # data file it came from, e.g. "publications.json"
     text: str    # embedded for search and shown to the model
+    role: str = ""  # people only, e.g. "Director": a question using it finds the person
 
 
 @dataclass
@@ -102,9 +108,18 @@ def load(data_dir: Path) -> Knowledge:
     return kb
 
 
+def _read_text(path: Path) -> str:
+    """A data file's text. A UTF-8 byte order mark (Notepad, PowerShell) is
+    accepted; a file saved in another encoding is reported by name."""
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        raise KnowledgeError(f"{path.name}: not UTF-8 text; re-save the file as UTF-8") from None
+
+
 def _read(path: Path) -> dict:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(_read_text(path))
     except FileNotFoundError:
         raise KnowledgeError(f"{path.name}: file not found in {path.parent}") from None
     except json.JSONDecodeError as exc:
@@ -123,7 +138,8 @@ def _check_items(name: str, items: list, schema: dict) -> None:
         for key, kind in schema.items():
             value = item.get(key)
             # bool counts as int in Python, so it is rejected explicitly.
-            if not isinstance(value, kind) or isinstance(value, bool) or value in ("", []):
+            empty = value in ("", []) and key not in MAY_BE_EMPTY
+            if not isinstance(value, kind) or isinstance(value, bool) or empty:
                 raise KnowledgeError(f"{label}: '{key}' is missing or not {TYPE_NAMES[kind]}")
             if kind is list and not all(isinstance(v, str) and v.strip() for v in value):
                 raise KnowledgeError(f"{label}: '{key}' must be a list of non-empty strings")
@@ -197,6 +213,36 @@ def name_tokens(name: str) -> set[str]:
     return {w for w in words(name) if len(w) >= 4 and w not in NAME_TITLES}
 
 
+# Common title words that say nothing about which paper is meant.
+TITLE_STOPWORDS = {"about", "actually", "from", "into", "their", "this", "through",
+                   "using", "what", "with", "within"}
+
+
+def acronyms(title: str) -> set[str]:
+    """Abbreviations in a title, lower-cased: "LLM–MCDM" gives {"llm", "mcdm"}."""
+    return {a.lower() for a in re.findall(r"\b([A-Z][A-Z0-9]{2,})s?\b", title)}
+
+
+def papers_named(query: str, titles: dict[str, str]) -> list[str]:
+    """Ids of the papers a question names, given {paper id: title}.
+
+    A paper is named by one of its acronyms ("EMFE") or by two words of its
+    title ("Human Layer"), counting only acronyms and words that appear in no
+    other title: "LLM" or "framework" point to no single paper, and one
+    ordinary word ("reach") is not enough.
+    """
+    acr = {pid: acronyms(t) for pid, t in titles.items()}
+    wrd = {pid: {w for w in words(t) if len(w) >= 4 and w not in TITLE_STOPWORDS} - acr[pid]
+           for pid, t in titles.items()}
+
+    def distinctive(sets: dict[str, set[str]], pid: str) -> set[str]:
+        return sets[pid] - set().union(*(s for other, s in sets.items() if other != pid))
+
+    asked = words(query)
+    return [pid for pid in titles
+            if distinctive(acr, pid) & asked or len(distinctive(wrd, pid) & asked) >= 2]
+
+
 def _theme_names(kb: Knowledge, theme_ids) -> list[str]:
     names = {t["id"]: t["name"] for t in kb.themes}
     return [names[t] for t in theme_ids]
@@ -247,9 +293,11 @@ def _person_entry(kb: Knowledge, person: dict) -> Entry:
     else:
         lines.append("No publications listed yet.")
     links = person["links"]
+    if links:
+        lines.append("Links: " + "; ".join(f"{LINK_LABELS[k]} {url}" for k, url in links.items()))
     url = links.get("profile") or links.get("scholar") or SITE_URL + "#people"
     return Entry(f"person:{person['id']}", "person", person["name"], url, "people.json",
-                 "\n".join(lines))
+                 "\n".join(lines), role=person["role"])
 
 
 def _theme_entry(kb: Knowledge, theme: dict) -> Entry:
@@ -315,7 +363,9 @@ def chunk_markdown(text: str, source: str) -> list[Entry]:
             entries.append(Entry(
                 id=f"{source}#{len(entries)}",
                 kind="page",
-                title=heading or title or source,
+                # "The Human Layer of Agentic AI Memory: Citation", not just "Citation".
+                title=(f"{title}: {heading}" if title and heading and heading != title
+                       else heading or title or source),
                 url=url,
                 source=source,
                 text=f"{label}\n{body}" if label else body,
@@ -346,7 +396,7 @@ def build_entries(data_dir: Path) -> list[Entry]:
     entries += [_theme_entry(kb, t) for t in kb.themes]
     entries += _overview_entries(kb)
     for path in sorted(data_dir.glob("*.md")):
-        entries += chunk_markdown(path.read_text(encoding="utf-8"), path.name)
+        entries += chunk_markdown(_read_text(path), path.name)
     return entries
 
 
