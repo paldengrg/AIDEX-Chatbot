@@ -1,7 +1,7 @@
 # Part 1: Structured knowledge base — design
 
 Date: 2026-10-07
-Status: approved 2026-10-07; section 5 updated after content research (see Open items)
+Status: implemented 2026-10-07
 
 ## Context
 
