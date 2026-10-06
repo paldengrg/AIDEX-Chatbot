@@ -108,6 +108,28 @@ def retrieval_query(message: str, history: list[dict]) -> str:
     return " ".join(previous + [message])
 
 
+def _unique(docs: list[dict]) -> list[dict]:
+    """Drop repeated entries (same id), keeping the first occurrence."""
+    unique, seen = [], set()
+    for d in docs:
+        if d["id"] not in seen:
+            seen.add(d["id"])
+            unique.append(d)
+    return unique
+
+
+def gather_context(query: str) -> tuple[list[dict], list[dict]]:
+    """Return (documents for the prompt, documents found for this question).
+
+    Found = people named in the question plus the entries closest in meaning;
+    these are shown to the user as sources. The prompt also always gets the
+    three overview lists (every theme, paper and person), because search on
+    its own ranks them too low for questions like "what has the lab published?".
+    """
+    found = _unique(rag.people_named(query) + rag.retrieve(query))
+    return _unique(found + rag.overviews()), found
+
+
 def answer(message: str, history: list[dict], memories: list[dict] | None = None,
            clarify_style: str = "neutral") -> tuple[str, list[dict], list[int]]:
     """Return (reply_text, sources, used_memory_ids) for a user message.
@@ -115,15 +137,15 @@ def answer(message: str, history: list[dict], memories: list[dict] | None = None
     `memories` are the user's relevant memory items (empty for anonymous users).
     """
     memories = memories or []
-    docs = rag.retrieve(retrieval_query(message, history))
-    system = build_system_prompt(docs, memories, clarify_style)
+    context, found = gather_context(retrieval_query(message, history))
+    system = build_system_prompt(context, memories, clarify_style)
     messages = history + [{"role": "user", "content": message}]
     reply = llm_client.complete(system, messages)
     reply, used_ids = split_used_memory(reply, {m["id"] for m in memories})
 
     # De-duplicated list of sources to show under the reply.
     sources, seen = [], set()
-    for d in docs:
+    for d in found:
         key = (d["title"], d["url"])
         if key not in seen:
             seen.add(key)

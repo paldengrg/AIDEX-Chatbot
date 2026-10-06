@@ -163,6 +163,15 @@ def test_person_themes_come_from_their_papers_most_frequent_first(data_dir):
     assert knowledge.person_themes(kb, student) == ["Agentic AI", "AI for Learning"]
 
 
+@pytest.mark.parametrize("name, tokens", [
+    ("Associate Professor Walayat Hussain", {"walayat", "hussain"}),  # titles ignored
+    ("Md Nazmul Hossain", {"nazmul", "hossain"}),                      # short words ignored
+    ("Dr Elena León-Castro", {"elena", "león", "castro"}),             # accents kept
+])
+def test_name_tokens_are_the_distinctive_words_of_a_name(name, tokens):
+    assert knowledge.name_tokens(name) == tokens
+
+
 # --- Search entries -------------------------------------------------------------------
 
 def entries_by_id(folder):
@@ -196,7 +205,9 @@ def test_paper_without_abstract_is_marked_citation_only(data_dir):
 def test_person_entry_lists_all_their_papers_and_links_best_profile(data_dir):
     entries = entries_by_id(data_dir)
     director = entries["person:director"]
-    assert director.text.startswith("Prof Director, Director\n")
+    # A question-shaped opening line, so "what has X published?" finds it.
+    assert director.text.startswith("Publications and research by Prof Director\n"
+                                    "Prof Director, Director\n")
     assert "Research themes (from their publications): AI for Learning, Agentic AI" in director.text
     assert "Publications (2):\n- Paper A (2026)\n- Paper B (2025)" in director.text
     assert director.url == "https://example.edu/director"           # profile first
@@ -226,14 +237,15 @@ def test_overviews_list_everything(tmp_path):
     write_data(tmp_path, note="More team members are coming.")
     entries = entries_by_id(tmp_path)
     pubs = entries["overview:publications"].text
-    assert pubs.startswith("AIDEX Lab publications (2 in total)")
+    assert pubs.startswith("What has the AIDEX Lab published? All 2 publications:")
     assert "Book chapters:\n- Paper A (2026)" in pubs
     assert "Preprints:\n- Paper B (2025)" in pubs
     people = entries["overview:people"].text
+    assert people.startswith("Who works at the AIDEX Lab? People (2 listed):")
     assert "- Prof Director: Director\n- PhD Student: PhD Candidate" in people
     assert people.endswith("More team members are coming.")
     themes = entries["overview:themes"].text
-    assert themes.startswith("AIDEX Lab research themes (2)")
+    assert themes.startswith("What does the AIDEX Lab research? The lab's 2 research themes:")
     assert "1. Agentic AI: Agents that adapt.\n2. AI for Learning: AI in education." in themes
 
 

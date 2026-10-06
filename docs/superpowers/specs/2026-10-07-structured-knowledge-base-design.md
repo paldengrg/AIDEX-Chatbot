@@ -128,11 +128,11 @@ the file, item id and problem):
 | Kind | Entry id | Text, in this order | `url` | `source` |
 |---|---|---|---|---|
 | `publication` | `publication:<id>` | Title; theme names; authors; year, type, venue; abstract, or "Citation only: no abstract available." | `url` | `publications.json` |
-| `person` | `person:<id>` | Name and role; themes (from their papers, most frequent first); bio; all their papers as "title (year)" | `links.profile`, else `links.scholar`, else site `#people` | `people.json` |
+| `person` | `person:<id>` | "Publications and research by <name>"; name and role; themes (from their papers, most frequent first); bio; all their papers as "title (year)" | `links.profile`, else `links.scholar`, else site `#people` | `people.json` |
 | `theme` | `theme:<id>` | Number and name; description; every paper tagged with it; people who authored those papers | site `#research` | `themes.json` |
-| `overview` | `overview:publications` | "AIDEX Lab publications (N total)", then titles and years grouped by type | site `#publications` | `publications.json` |
-| `overview` | `overview:people` | All people with roles | site `#people` | `people.json` |
-| `overview` | `overview:themes` | "AIDEX Lab research themes (5)", then each name and description | site `#research` | `themes.json` |
+| `overview` | `overview:publications` | "What has the AIDEX Lab published? All N publications:", then titles and years grouped by type | site `#publications` | `publications.json` |
+| `overview` | `overview:people` | "Who works at the AIDEX Lab? People (N listed):", then all people with roles | site `#people` | `people.json` |
+| `overview` | `overview:themes` | "What does the AIDEX Lab research? The lab's 5 research themes:", then each name and description | site `#research` | `themes.json` |
 | `page` | `<file>#<n>` | Markdown section, chunked as today by `chunk_markdown` | site anchor for the file (below) | file name |
 
 Page anchors: `about.md` → `#about`, `join-and-contact.md` → `#join`,
@@ -164,6 +164,22 @@ research log (`main.py`) and analytics are unchanged.
 **Settings.** `RAG_TOP_K` default goes from 4 to 6 (`config.py` and
 `.env.example`). `MAX_DISTANCE` stays 0.75. Both are then tuned against the
 retrieval tests (see Testing), and the final values are recorded in the plan.
+
+**Hybrid context (decided 2026-10-07 after measuring retrieval).** With the
+local embedding model, list questions ranked the overview entries 10th–21st,
+person entries scored 0.76–0.86 even when the question named the person, and an
+off-topic question ("Write me a Python game", 0.713) scored closer than on-topic
+ones. A distance cut-off therefore cannot be the off-topic filter. So:
+
+- The three overview entries are **always** added to the prompt.
+- A person's entry is added when the question contains one of the distinctive
+  words of their name (4+ letters; titles such as "Associate" and "Professor"
+  ignored; accented letters kept).
+- Semantic search adds the closest entries: `RAG_TOP_K` 8, `MAX_DISTANCE` 0.75.
+- Sources shown to the user are the name matches and semantic hits; the
+  always-present overviews are listed only when search also found them.
+- Overview and person entries open with question-shaped lines (table above).
+- Declining off-topic questions is left to the answer rules (Part 2).
 
 ### 4. Prompt, sources and UI
 
@@ -234,10 +250,11 @@ Rule: every field comes from a page that can be pointed to, or it stays empty.
 | Query | Expected in results |
 |---|---|
 | "AI agents that adapt based on student behaviour" | Adaptive nudging chapter or FSLSM paper |
-| "anything on healthcare?" | Stroke care chapter or malaria preprint |
+| "anything on healthcare?" | Stroke care and malaria titles in the prompt context |
 | "What research does the lab do?" | `overview:themes` |
-| "What has Walayat Hussain published?" | `person:walayat-hussain` |
-| "autonomous vehicles" | No hit within `MAX_DISTANCE` |
+| "What has Walayat Hussain published?" | `person:walayat-hussain` (name match) |
+| "What has Hossain published?" | `person:nazmul-hossain` only (no Hussain/Hossain mix-up) |
+| any question | all three overview entries in the prompt context |
 
 **Existing tests.** `tests/test_api.py` expects `people.json` instead of
 `people.md`, and checks that each source has `kind`, `title` and an `https` url.

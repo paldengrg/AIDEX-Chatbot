@@ -9,7 +9,7 @@ import shutil
 import chromadb
 import pytest
 
-from app import knowledge, rag
+from app import chat, knowledge, rag
 from app.config import settings
 
 
@@ -63,3 +63,72 @@ def test_hits_carry_kind_title_and_https_link(temp_index):
         assert h["url"].startswith("https://")
     # The people overview names the Director; the cut-off is tuned in the quality tests below.
     assert {"overview:people", "person:walayat-hussain"} & {h["id"] for h in hits}
+
+
+# --- Retrieval quality on the real data ----------------------------------------------
+# What the model gets for a question = people named in it + the entries closest
+# in meaning + the three overview lists (always). Measured on 2026-10-07: search
+# alone ranked the overviews 10th-21st for list questions and scored person
+# entries 0.76-0.86 even when the question named the person.
+
+OVERVIEWS = {"overview:themes", "overview:publications", "overview:people"}
+
+
+def ids(docs):
+    return [d["id"] for d in docs]
+
+
+@pytest.mark.parametrize("query, expected_any", [
+    ("I'm interested in AI agents that adapt based on student behaviour",
+     {"publication:reimagining-student-success", "publication:static-to-dynamic-personalization"}),
+    ("Find papers about agentic AI", {"theme:agentic-ai", "publication:human-layer-agentic-memory"}),
+    ("What research does the lab do?", {"overview:themes"}),  # thanks to its question-shaped opening
+])
+def test_everyday_questions_find_the_right_records(query, expected_any):
+    found = ids(rag.retrieve(query))
+    assert expected_any & set(found), f"{query!r} retrieved {found}"
+
+
+@pytest.mark.parametrize("query", [
+    "Which papers has the lab published?", "Who works here?", "Write me a Python game"])
+def test_overview_lists_are_always_in_the_prompt_context(query):
+    context, _ = chat.gather_context(query)
+    assert OVERVIEWS <= set(ids(context))
+
+
+def test_healthcare_question_reaches_the_health_papers():
+    context, _ = chat.gather_context("Does the lab have anything on healthcare?")
+    text = "\n".join(d["text"] for d in context)
+    assert "Deep Learning in Stroke Care" in text
+    assert "malaria cell classification" in text
+
+
+@pytest.mark.parametrize("query, person", [
+    ("What has Walayat Hussain published?", "person:walayat-hussain"),
+    ("what has hussain worked on", "person:walayat-hussain"),
+    ("Tell me about Nazmul's research", "person:nazmul-hossain"),
+])
+def test_people_named_in_the_question_are_sources(query, person):
+    _, sources = chat.gather_context(query)
+    assert person in ids(sources)
+
+
+def test_name_matching_does_not_confuse_hussain_and_hossain():
+    assert ids(rag.people_named("What has Hossain published?")) == ["person:nazmul-hossain"]
+
+
+def test_no_person_is_matched_without_a_name():
+    assert rag.people_named("What research does the lab do?") == []
+
+
+def test_overviews_are_listed_as_sources_only_when_search_finds_them():
+    context, sources = chat.gather_context("bibliometric analysis of the Journal of Management")
+    assert OVERVIEWS <= set(ids(context))
+    assert not OVERVIEWS & set(ids(sources))
+
+
+def test_special_characters_survive_indexing():
+    hits = {h["id"]: h for h in rag.retrieve("bibliometric analysis of the Journal of Management")}
+    jmo = hits["publication:jmo-bibliometric-analysis"]
+    assert "Merigó, J. M." in jmo["text"]
+    assert "215–266" in jmo["text"]

@@ -7,6 +7,10 @@ How it works:
      meaning) using a small local model, and stores it.
   2. RETRIEVE: for a question, ChromaDB embeds the question the same way and
      returns the entries whose vectors are closest in meaning.
+  3. Because the small embedding model is weak on names and list questions,
+     two simple helpers back it up: people_named() finds people mentioned by
+     name, and overviews() returns the lists of all themes, papers and people,
+     which chat.py always gives to the model.
 
 The retrieved entries are pasted into the prompt so the model answers from the
 lab's real content instead of guessing. This is the shared "domain knowledge"
@@ -24,6 +28,9 @@ COLLECTION_NAME = "aidx_documents"
 # Entries further than this (cosine distance, 0 = identical meaning) are treated
 # as irrelevant, so off-topic questions don't get random "sources".
 MAX_DISTANCE = 0.75
+
+# Always given to the model: every theme, paper and person in one list each.
+OVERVIEW_IDS = ["overview:themes", "overview:publications", "overview:people"]
 
 _collection = None
 
@@ -85,14 +92,41 @@ def retrieve(query: str, k: int | None = None) -> list[dict]:
     result = collection.query(
         query_texts=[query], n_results=min(k or settings.rag_top_k, collection.count())
     )
-    hits = []
-    for entry_id, text, meta, dist in zip(result["ids"][0], result["documents"][0],
-                                          result["metadatas"][0], result["distances"][0]):
-        if dist <= MAX_DISTANCE:
-            hits.append({"text": text, "kind": meta["kind"], "id": entry_id,
-                         "title": meta["title"], "url": meta["url"],
-                         "source": meta["source"], "distance": round(dist, 3)})
-    return hits
+    return [_hit(entry_id, text, meta, round(dist, 3))
+            for entry_id, text, meta, dist in zip(result["ids"][0], result["documents"][0],
+                                                  result["metadatas"][0], result["distances"][0])
+            if dist <= MAX_DISTANCE]
+
+
+def overviews() -> list[dict]:
+    """The three overview entries (all themes, all papers, all people).
+
+    Search alone ranks these too low for list questions ("what has the lab
+    published?"), so chat.py always gives them to the model.
+    """
+    result = get_collection().get(ids=OVERVIEW_IDS, include=["documents", "metadatas"])
+    found = {i: (text, meta) for i, text, meta
+             in zip(result["ids"], result["documents"], result["metadatas"])}
+    return [_hit(i, *found[i], None) for i in OVERVIEW_IDS if i in found]
+
+
+def people_named(query: str) -> list[dict]:
+    """Person entries whose name appears in the query ("Hussain", "Nazmul", ...).
+
+    The embedding model is weak on names, so a question naming someone could
+    otherwise miss their entry entirely.
+    """
+    asked = knowledge.words(query)
+    result = get_collection().get(where={"kind": "person"}, include=["documents", "metadatas"])
+    return [_hit(i, text, meta, None) for i, text, meta
+            in zip(result["ids"], result["documents"], result["metadatas"])
+            if knowledge.name_tokens(meta["title"]) & asked]
+
+
+def _hit(entry_id: str, text: str, meta: dict, distance: float | None) -> dict:
+    """One retrieved entry; distance is None when it was not found by meaning."""
+    return {"text": text, "kind": meta["kind"], "id": entry_id, "title": meta["title"],
+            "url": meta["url"], "source": meta["source"], "distance": distance}
 
 
 if __name__ == "__main__":

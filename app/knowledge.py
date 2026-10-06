@@ -28,7 +28,7 @@ SITE_URL = "https://aidxlab.github.io/"
 
 # Bump this when the way entries are built changes: the index is then rebuilt
 # on the next start even though no data file changed.
-INDEX_VERSION = "2"
+INDEX_VERSION = "3"
 
 # Where each markdown page lives on the lab website (its citation link).
 PAGE_URLS = {
@@ -179,6 +179,24 @@ def papers_by(kb: Knowledge, person: dict) -> list[dict]:
     return [p for p in kb.publications if names & set(p["authors"])]
 
 
+# Words in a person's name that are titles, not names.
+NAME_TITLES = {"associate", "assistant", "professor", "prof", "doctor"}
+
+
+def words(text: str) -> set[str]:
+    """Lower-case words of a text, letters only (accented letters included)."""
+    return set(re.findall(r"[^\W\d_]+", text.lower()))
+
+
+def name_tokens(name: str) -> set[str]:
+    """The distinctive words of a person's name, used to spot them in a question.
+
+    Titles and words shorter than 4 letters ("Md", "Dr") are left out, so
+    "Associate Professor Walayat Hussain" gives {"walayat", "hussain"}.
+    """
+    return {w for w in words(name) if len(w) >= 4 and w not in NAME_TITLES}
+
+
 def _theme_names(kb: Knowledge, theme_ids) -> list[str]:
     names = {t["id"]: t["name"] for t in kb.themes}
     return [names[t] for t in theme_ids]
@@ -218,7 +236,8 @@ def _publication_entry(kb: Knowledge, p: dict) -> Entry:
 def _person_entry(kb: Knowledge, person: dict) -> Entry:
     papers = papers_by(kb, person)
     themes = person_themes(kb, person)
-    lines = [f"{person['name']}, {person['role']}"]
+    lines = [f"Publications and research by {person['name']}",
+             f"{person['name']}, {person['role']}"]
     if themes:
         lines.append(f"Research themes (from their publications): {', '.join(themes)}")
     lines.append(person["bio"])
@@ -249,15 +268,17 @@ def _theme_entry(kb: Knowledge, theme: dict) -> Entry:
 
 
 def _overview_entries(kb: Knowledge) -> list[Entry]:
-    pubs = [f"AIDEX Lab publications ({len(kb.publications)} in total)"]
+    # Opening lines are phrased like the questions they answer: search matches
+    # questions far better against question-shaped text than against labels.
+    pubs = [f"What has the AIDEX Lab published? All {len(kb.publications)} publications:"]
     for type_id, (_, plural) in PUBLICATION_TYPES.items():
         group = [p for p in kb.publications if p["type"] == type_id]
         if group:
             pubs.append(f"{plural}:")
             pubs.extend(_paper_line(p) for p in group)
-    people = [f"AIDEX Lab people ({len(kb.people)} listed)"]
+    people = [f"Who works at the AIDEX Lab? People ({len(kb.people)} listed):"]
     people.extend(f"- {p['name']}: {p['role']}" for p in kb.people)
-    themes = [f"AIDEX Lab research themes ({len(kb.themes)})"]
+    themes = [f"What does the AIDEX Lab research? The lab's {len(kb.themes)} research themes:"]
     themes.extend(f"{t['number']}. {t['name']}: {t['description']}"
                   for t in sorted(kb.themes, key=lambda t: t["number"]))
     for lines, name in ((pubs, "publications.json"), (people, "people.json"),

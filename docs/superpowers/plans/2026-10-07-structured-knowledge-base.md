@@ -1425,6 +1425,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 4: Retrieval quality tests and tuning
 
+> **Revised during execution (user-approved, 2026-10-07).** Step 4's rule could not be met: no cut-off separated on-topic from off-topic questions, and top-8 missed list answers. The user chose **Hybrid context** (see the spec, section 3): overview entries always in the prompt (`rag.overviews()`), person entries added by name match (`rag.people_named()`, `knowledge.name_tokens()`), semantic hits from `rag.retrieve()` combined in `chat.gather_context()`, question-shaped opening lines, `RAG_TOP_K` 8, `MAX_DISTANCE` 0.75, `INDEX_VERSION` "3". The off-topic retrieval test was dropped; off-topic handling moves to Part 2. Steps below are kept as the record of the original plan.
+
 **Files:**
 - Modify: `tests/test_retrieval.py` (append)
 - Modify, if tuning requires: `app/rag.py` (`MAX_DISTANCE`), `app/config.py` and `.env.example` (`RAG_TOP_K`)
