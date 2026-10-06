@@ -100,3 +100,38 @@ def require_user(user: User | None = Depends(current_user)) -> User:
     if user is None:
         raise HTTPException(401, "Please sign in first.")
     return user
+
+
+# --- Admin (one account, configured in .env) -----------------------------------------
+
+ADMIN_COOKIE = "aidx_admin"
+ADMIN_HOURS = 8
+
+
+def check_admin_login(username: str, password: str) -> bool:
+    if not settings.admin_password:
+        return False  # admin dashboard disabled
+    same_user = hmac.compare_digest(username.encode(), settings.admin_username.encode())
+    same_pass = hmac.compare_digest(password.encode(), settings.admin_password.encode())
+    return same_user and same_pass
+
+
+def make_admin_token(now: float | None = None) -> str:
+    expires = int((time.time() if now is None else now) + ADMIN_HOURS * 3600)
+    payload = f"admin.{expires}"
+    return f"{payload}.{_sign(payload)}"
+
+
+def is_admin_token(token: str | None, now: float | None = None) -> bool:
+    try:
+        role, expires, signature = (token or "").split(".")
+        payload = f"{role}.{expires}"
+        return (role == "admin" and hmac.compare_digest(signature, _sign(payload))
+                and int(expires) >= (time.time() if now is None else now))
+    except ValueError:
+        return False
+
+
+def require_admin(request: Request) -> None:
+    if not is_admin_token(request.cookies.get(ADMIN_COOKIE)):
+        raise HTTPException(401, "Admin sign-in required.")

@@ -1,9 +1,9 @@
 <!-- DRAFT: summarised from https://aidxlab.github.io/ on 5 Oct 2026. Please review before the demo. -->
 
-# About the AIDX Lab
+# About the AIDEX Lab
 
 ## Who we are
-The AIDX Lab (AI for Decision Excellence) is a research lab within the Peter Faber
+The AIDEX Lab (AI for Decision Excellence) is a research lab within the Peter Faber
 Business School at Australian Catholic University (ACU), based on the North Sydney
 campus, NSW, Australia.
 

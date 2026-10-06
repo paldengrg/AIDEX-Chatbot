@@ -11,6 +11,9 @@ env/
 # Secrets
 .env
 
+# Generated evaluation output
+eval/results.csv
+
 # Local data stores (rebuilt automatically)
 *.db
 *.sqlite3

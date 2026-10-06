@@ -19,7 +19,7 @@ def client():
 def test_home_page_shows_assistant_name(client):
     res = client.get("/")
     assert res.status_code == 200
-    assert "AIDX Assistant" in res.text
+    assert "AIDEX Assistant" in res.text
     assert "{{ASSISTANT_NAME}}" not in res.text
 
 
@@ -28,8 +28,19 @@ def test_chat_answers_from_documents(client):
     assert res.status_code == 200
     body = res.json()
     assert "Hussain" in body["reply"]
-    assert any(s["source"] == "people.md" for s in body["sources"])
+    assert any(s["source"] == "people.json" for s in body["sources"])
+    for s in body["sources"]:
+        assert set(s) == {"kind", "title", "url", "source"}
+        assert s["url"].startswith("https://")
     assert "aidx_session" in res.cookies
+
+
+def test_source_titles_keep_special_characters(client):
+    res = client.post("/api/chat", json={
+        "message": "bibliometric analysis of the Journal of Management & Organization"})
+    titles = [s["title"] for s in res.json()["sources"]]
+    assert ("From regional roots to global reach: A 30-year bibliometric analysis "
+            "of the Journal of Management & Organization") in titles
 
 
 def test_session_memory_is_used_for_follow_ups(client):

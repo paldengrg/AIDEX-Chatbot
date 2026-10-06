@@ -1,0 +1,138 @@
+{
+  "retrieved_from": "https://aidxlab.github.io/",
+  "retrieved_on": "2026-10-07",
+  "items": [
+    {
+      "id": "jmo-bibliometric-analysis",
+      "title": "From regional roots to global reach: A 30-year bibliometric analysis of the Journal of Management & Organization",
+      "authors": ["Hussain, W.", "Merigó, J. M.", "Baraheem, H.", "Ratten, V."],
+      "year": 2026,
+      "type": "journal_article",
+      "venue": "Journal of Management & Organization, 32(1), 215–266.",
+      "url": "https://doi.org/10.1017/jmo.2025.10066",
+      "themes": ["organisations-society"],
+      "abstract": "This study provides the large-scale bibliometric assessment of the Journal of Management & Organization (JMO), offering insights into its intellectual trajectory and positioning within the management field. Covering 1,083 documents published between 1995 and 2024, indexed in Web of Science and Scopus, the analysis applies performance metrics, citation structures, and science mapping using VOSviewer and Bibliometrix. The study is further grounded in institutional and field-theoretic perspectives, interpreting JMO’s evolution as a process of legitimacy-building and scientific capital accumulation within a global knowledge field. The results show that JMO’s growth has been marked by cyclical expansion, with a sharp increase in productivity since the mid-2000s but uneven citation impact, heavily reliant on a small set of landmark articles. Co-citation and bibliographic coupling analyses reveal intellectual roots in organizational behavior, psychology, and strategy, while keyword and thematic mapping highlight enduring strengths in leadership, human resource management, and job satisfaction. At the same time, new research frontiers have emerged in governance, innovation, sustainability, and work-life balance, reflecting JMO’s responsiveness to global challenges such as COVID-19 and digital transformation. Collaboration networks confirm the journal’s Australasian anchoring, yet also demonstrate growing integration into international research systems, particularly through linkages with the United States, China, and Europe. This study contributes to understanding JMO’s evolving role within management and organizational scholarship, identifying both its achievements and challenges. The findings offer insights for scholars, institutions, and editors on how JMO can consolidate high-impact niches, diversify its author base, and strengthen its influence in shaping global management debates.",
+      "abstract_source": "https://doi.org/10.1017/jmo.2025.10066"
+    },
+    {
+      "id": "llm-energy-forecasting",
+      "title": "Harnessing AI-driven large language models (LLMs) for enhanced forecasting and optimisation of wind and solar energy generation and load demand profiles",
+      "authors": ["Aleassa, O.", "Bekhit, M.", "Hussain, W.", "Fattah, I. M. R."],
+      "year": 2026,
+      "type": "journal_article",
+      "venue": "Renewable and Sustainable Energy Reviews, 239, 117171.",
+      "url": "https://www.sciencedirect.com/science/article/pii/S1364032126004703",
+      "themes": ["organisations-society"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "ai-driven-mathematics-education",
+      "title": "AI-Driven Mathematics Education",
+      "authors": ["Sahni, M.", "León-Castro, E.", "Hussain, W."],
+      "year": 2026,
+      "type": "edited_book",
+      "venue": "Studies in Big Data, Vol. 201. Springer, Cham.",
+      "url": "https://doi.org/10.1007/978-3-032-31204-4",
+      "themes": ["learning"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "human-layer-agentic-memory",
+      "title": "The Human Layer of Agentic AI Memory: What Self-Improving LLM Systems Actually Learn in Production",
+      "authors": ["Parameswaran, A.", "Hussain, W.", "Hossain, M. N."],
+      "year": 2026,
+      "type": "book_chapter",
+      "venue": "In M. Sahni, E. León-Castro & W. Hussain (Eds.), AI-Driven Mathematics Education (pp. 35–52). Springer, Cham.",
+      "url": "https://doi.org/10.1007/978-3-032-31204-4_3",
+      "themes": ["agentic-ai"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "reimagining-student-success",
+      "title": "Reimagining Student Success: An Agentic Framework for Early Detection and Adaptive Nudging in Higher Education",
+      "authors": ["Hossain, M. N.", "Hussain, W.", "Bekhit, M."],
+      "year": 2026,
+      "type": "book_chapter",
+      "venue": "In M. Sahni, E. León-Castro & W. Hussain (Eds.), AI-Driven Mathematics Education. Springer, Cham.",
+      "url": "https://doi.org/10.1007/978-3-032-31204-4_11",
+      "themes": ["agentic-ai", "learning"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "deep-learning-stroke-care",
+      "title": "Deep Learning in Stroke Care",
+      "authors": ["Zafari, Y.", "Rashed, E. A.", "Hussain, W.", "Mabrok, M."],
+      "year": 2026,
+      "type": "book_chapter",
+      "venue": "In Deep Learning Applications in Neuroinformatics (pp. 49–79).",
+      "url": "https://scholar.google.com/scholar?q=%22Deep%20learning%20in%20stroke%20care%22",
+      "themes": ["organisations-society"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "llm-education-agents-k12",
+      "title": "AI Intelligence Within Teaching: A Multidimensional Evaluation of Large Language Model Education Agents in K-12 Education",
+      "authors": ["Hussain, W.", "Varanasi, M. R.", "New, L."],
+      "year": 2026,
+      "type": "conference_paper",
+      "venue": "2025 International Conference on Computational Engineering, Sensing Technology and Management (ICCETM), Sydney, Australia (pp. 1–6). IEEE.",
+      "url": "https://doi.org/10.1109/ICCETM66557.2025.11558109",
+      "themes": ["learning"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "static-to-dynamic-personalization",
+      "title": "From Static to Dynamic Personalization: Applying Agentic AI to the Felder–Silverman Learning Style Model (FSLSM)",
+      "authors": ["Hossain, M. N.", "Rupai, A. A. A.", "Hussain, W."],
+      "year": 2026,
+      "type": "conference_paper",
+      "venue": "2025 International Conference on Computational Engineering, Sensing Technology and Management (ICCETM). IEEE.",
+      "url": "https://scholar.google.com/scholar?q=%22From%20Static%20to%20Dynamic%20Personalization%3A%20Applying%20Agentic%20AI%20to%20the%20Felder-Silverman%20Learning%20Style%20Model%22",
+      "themes": ["agentic-ai", "learning"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "twin-minds-cyber-defense",
+      "title": "Twin Minds in Cyber-Defense: A Dual-Agent Framework for Safe Automated Assessment in Security Education",
+      "authors": ["Bekhit, M.", "Rashed, E. A.", "Othman, W.", "Hussain, W."],
+      "year": 2026,
+      "type": "conference_paper",
+      "venue": "2026 23rd International Learning and Technology Conference (L&T), 23, 71–75.",
+      "url": "https://scholar.google.com/scholar?q=%22Twin%20Minds%20in%20Cyber-Defense%3A%20A%20Dual-Agent%20Framework%20for%20Safe%20Automated%20Assessment%20in%20Security%20Education%22",
+      "themes": ["trustworthy-ai", "agentic-ai", "learning"],
+      "abstract": null,
+      "abstract_source": null
+    },
+    {
+      "id": "emfe-malaria",
+      "title": "EMFE: A lightweight, explainable machine learning framework for malaria cell classification",
+      "authors": ["Kafi, M. A. A.", "Hussain, W.", "Karmakar, M.", "Banshal, S. K.", "Al Marouf, A."],
+      "year": 2026,
+      "type": "preprint",
+      "venue": "arXiv preprint arXiv:2608.24793.",
+      "url": "https://arxiv.org/abs/2608.24793",
+      "themes": ["trustworthy-ai"],
+      "abstract": "Automated malaria diagnosis from stained blood-smear microscopy is dominated by deep convolutional neural networks that are accurate but computationally expensive, poorly interpretable, and rarely validated with patient-level rigor. We present EMFE (Efficient Mathematical Feature Extraction), a five-feature framework for classifying single red-blood-cell images as parasitized or uninfected using Gray World color normalization, adaptive green-channel thresholding, morphological spot detection, and classical machine learning. Using the NIH LHNCBC malaria dataset (27,558 images from 200 patients), we evaluate Random Forest, Histogram Gradient Boosting, and Support Vector Machine classifiers under patient-grouped nested cross-validation (K_outer=20, K_inner=3), ensuring that cells from each patient remain within a single fold. The optimized Random Forest achieves 94.6% pooled out-of-fold accuracy (95% CI [93.6, 95.7]), corroborated by an untouched 40-patient holdout test (94.3%) and a patient-level permutation test (p<0.001, 1,000 permutations). Ablation experiments quantify the contribution of individual features and pipeline stages. Hardware-matched comparisons with retrained DenseNet121, ResNet50, and MobileNetV2 models assess the accuracy-efficiency trade-off. Synthetic perturbations characterize three failure modes, while explainability analysis identifies spot saturation as the dominant discriminative feature. Patient-level aggregation further quantifies sensitivity-specificity trade-offs and false-positive accumulation. These results demonstrate a statistically rigorous, interpretable, and computationally lightweight alternative to deep learning, while explicitly quantifying its limitations.",
+      "abstract_source": "https://arxiv.org/abs/2608.24793"
+    },
+    {
+      "id": "credibility-weighted-llm-mcdm",
+      "title": "Credibility-Weighted Evidence Aggregation Using Hybrid LLM–MCDM for Review-Driven Decision Analysis",
+      "authors": ["Rajaeian, M.", "Hussain, W."],
+      "year": 2026,
+      "type": "preprint",
+      "venue": "SSRN preprint 6277363.",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6277363",
+      "themes": ["decision-intelligence"],
+      "abstract": "Digital marketplaces host vast volumes of user-generated feedback that contain rich evaluative signals but are unstructured, noisy, and highly variable in credibility. Conventional rating- and sentiment-based methods collapse this complexity into coarse summary scores, obscuring reviewer trustworthiness, argument quality, and temporal relevance—factors essential for reliable decision analytics. This study introduces a hybrid large language model–multi-criteria decision-making (LLM–MCDM) framework that converts free-text reviews into structured, credibility-weighted decision evidence. The approach integrates: (i) Consumer Feedback Attributes capturing reviewer credibility and temporal freshness, (ii) LLM-based extraction of criterion-specific sentiment evidence, and (iii) a multi-criteria aggregation mechanism combining Analytic Hierarchy Process weighting with additive utility modelling. By embedding credibility and recency directly into the aggregation process, the framework yields transparent, interpretable, and criterion-resolved evaluations. A temporal extension further enables instantaneous and trend-based early-warning signals when credible negative evidence surpasses configurable risk thresholds. The model is evaluated on 1,054 TrustRadius reviews spanning 30 infrastructure-as-a-service products. Results show that credibility-weighted aggregation produces rankings that diverge markedly from star-rating baselines, underscoring the inadequacy of ratings as proxies for structured, credibility-aware assessments. Robustness analyses across alternative credibility metrics, recency decay settings, and baseline comparators confirm the stability of rankings and the practical value of the early-warning signals. The findings demonstrate the potential of hybrid soft-computing aggregation to strengthen review-driven decision analytics in complex and dynamically evolving environments.",
+      "abstract_source": "https://api.crossref.org/works/10.2139/ssrn.6277363"
+    }
+  ]
+}

@@ -25,6 +25,9 @@ class Session:
     # Each turn is {"role": "user"|"assistant", "content": str}.
     turns: deque = field(default_factory=lambda: deque(maxlen=settings.session_max_turns * 2))
     last_seen: float = field(default_factory=time.time)
+    # Database id of the previous turn (signed-in users with memory only), so
+    # a correction in the next message can be linked back to it.
+    last_exchange_id: int | None = None
 
 
 class SessionStore:

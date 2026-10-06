@@ -1,0 +1,23 @@
+{
+  "retrieved_from": "https://aidxlab.github.io/ (people section)",
+  "retrieved_on": "2026-10-07",
+  "note": "The lab website says further team members will be added as details are provided.",
+  "items": [
+    {
+      "id": "walayat-hussain",
+      "name": "Associate Professor Walayat Hussain",
+      "role": "Director",
+      "bio": "Director of the AIDEX Lab and Head of Discipline, Information Technology and Systems, Peter Faber Business School, Australian Catholic University. More than two decades of experience across academia and industry, with over 90 publications including ERA A* and A ranked venues. Associate Editor of IET Communications, International Journal of Web Information Systems and Forecasting, and a Fellow of the European Alliance for Innovation.",
+      "author_names": ["Hussain, W."],
+      "links": {"profile": "https://www.acu.edu.au/research-and-enterprise/our-people/walayat-hussain", "scholar": "https://scholar.google.com/citations?hl=en&user=HaA3MowAAAAJ", "linkedin": "https://www.linkedin.com/in/walayat-hussain-3104317a/"}
+    },
+    {
+      "id": "nazmul-hossain",
+      "name": "Md Nazmul Hossain",
+      "role": "PhD Candidate",
+      "bio": "PhD Candidate, Peter Faber Business School, Australian Catholic University. Recent work on agentic frameworks for early detection and adaptive nudging in higher education, and on what self-improving LLM systems learn in production.",
+      "author_names": ["Hossain, M. N."],
+      "links": {"scholar": "https://scholar.google.com/citations?user=WHNwDPUAAAAJ&hl=en", "linkedin": "https://www.linkedin.com/in/md-nazmul-hossain-bd/"}
+    }
+  ]
+}

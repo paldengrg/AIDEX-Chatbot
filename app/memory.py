@@ -4,7 +4,7 @@ Every function takes the *current* user and only ever touches rows whose
 user_id is that user's pseudonym. There is no function that accepts another
 user's id, so one user can never read or change another user's memory.
 
-Phase 2: items are added manually. Phase 3 adds automatic extraction.
+Items are added manually (My account panel) or automatically (learning.py).
 """
 
 import difflib
@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import CATEGORIES, SOURCES, MemoryItem, User
+from app.models import CATEGORIES, SOURCES, MemoryItem, User, utcnow
 
 # Very common words that say nothing about relevance.
 STOPWORDS = set("""a an and are as at be but by can do does for from has have how i if in
@@ -50,7 +50,7 @@ def sanitize_rule(text: str) -> str:
         raise MemoryInputError(f"Keep rules under {settings.memory_rule_max_chars} characters.")
     if INJECTION_PATTERNS.search(text):
         raise MemoryInputError("That looks like an instruction to change the assistant's rules, "
-                          "so it can't be saved as a memory.")
+                               "so it can't be saved as a memory.")
     return text
 
 
@@ -83,6 +83,27 @@ def relevance(item_text: str, category: str, query: str) -> float:
     return base + overlap
 
 
+# --- Switching items on and off ---------------------------------------------------------
+
+def deactivate(item: MemoryItem, reason: str) -> None:
+    item.active = False
+    item.deactivated_at = utcnow()
+    item.deactivation_reason = reason
+
+
+def reactivate(item: MemoryItem) -> None:
+    """Turn an item back on with a fresh start, so the automatic review in
+    learning.py doesn't immediately switch it off again for old reasons."""
+    if item.active:
+        return
+    item.active = True
+    item.deactivated_at = None
+    item.deactivation_reason = None
+    item.times_corrected = 0
+    item.times_retrieved = item.times_used
+    item.last_used_at = utcnow()
+
+
 # --- CRUD (always scoped to the given user) -----------------------------------------
 
 def list_items(db: Session, user: User) -> list[MemoryItem]:
@@ -107,7 +128,7 @@ def add_item(db: Session, user: User, rule_text: str, category: str,
 
     for existing in list_items(db, user):
         if is_duplicate(existing.rule_text, rule_text):
-            existing.active = True  # re-stating a rule revives it
+            reactivate(existing)  # re-stating a rule revives it
             db.commit()
             return existing, False
 
@@ -125,8 +146,10 @@ def update_item(db: Session, user: User, item_id: int, rule_text: str | None = N
         item.rule_text = sanitize_rule(rule_text)
     if category is not None:
         item.category = _check_choice(category, CATEGORIES, "category")
-    if active is not None:
-        item.active = active
+    if active is True:
+        reactivate(item)
+    elif active is False and item.active:
+        deactivate(item, "paused by user")
     db.commit()
     return item
 

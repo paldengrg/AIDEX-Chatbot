@@ -25,5 +25,5 @@ course, a policy or a dataset. These facts are usually shared by many users.
 ## Why it matters
 The finding suggests that agent memory should be designed around the "human
 layer": learning each person's intent and preferences, with transparency and user
-control, rather than only accumulating more facts. The AIDX Assistant prototype
+control, rather than only accumulating more facts. The AIDEX Assistant prototype
 demonstrates and measures this distinction.

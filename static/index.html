@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{{ASSISTANT_NAME}} · AIDX Lab</title>
-  <meta name="description" content="Ask {{ASSISTANT_NAME}} about the AIDX Lab's research, people, publications and opportunities.">
+  <title>{{ASSISTANT_NAME}} · AIDEX Lab</title>
+  <meta name="description" content="Ask {{ASSISTANT_NAME}} about the AIDEX Lab's research, people, publications and opportunities.">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,7 @@
   <div class="app">
     <header class="chat-header">
       <div class="brand">
-        <img class="brand-logo" src="/assets/logo-white.png" alt="AIDX Lab logo" width="112" height="28">
+        <img class="brand-logo" src="/assets/logo-white.png" alt="AIDEX Lab logo" width="112" height="28">
         <div>
           <h1 class="brand-name">{{ASSISTANT_NAME}}</h1>
           <p class="brand-tag">AI for Decision Excellence</p>
@@ -48,15 +48,22 @@
       </div>
     </header>
 
+    <!-- Shown only to research participants, so logging is never hidden. -->
+    <div class="research-banner" id="research-banner" role="status" hidden>
+      <strong>Research study:</strong> this conversation is logged for research
+      <span id="research-banner-demo">(prototype: demo data only)</span>.
+      <button class="link-btn" type="button" id="research-banner-manage">Manage</button>
+    </div>
+
     <main class="messages" id="messages" aria-live="polite" aria-label="Conversation">
       <section class="welcome" id="welcome">
         <!-- Colour logo on light backgrounds, white logo in dark mode (CSS swaps them) -->
         <img class="welcome-logo on-light" src="/assets/logo-transparent.png" alt="" width="180" height="45">
         <img class="welcome-logo on-dark" src="/assets/logo-white.png" alt="" width="180" height="45">
         <h2>Hi, I'm {{ASSISTANT_NAME}}.</h2>
-        <p>Ask me about the AIDX Lab's research, people, publications, or how to get involved.</p>
+        <p>Ask me about the AIDEX Lab's research, people, publications, or how to get involved.</p>
         <div class="suggestions" id="suggestions">
-          <button type="button" class="chip">What does the AIDX Lab research?</button>
+          <button type="button" class="chip">What does the AIDEX Lab research?</button>
           <button type="button" class="chip">Who leads the lab?</button>
           <button type="button" class="chip">How can I join as a student?</button>
           <button type="button" class="chip">What is the Human Layer paper about?</button>
@@ -66,7 +73,7 @@
 
     <form class="composer" id="composer" autocomplete="off">
       <label for="input" class="sr-only">Your message</label>
-      <textarea id="input" rows="1" maxlength="2000" placeholder="Ask about the AIDX Lab…" required></textarea>
+      <textarea id="input" rows="1" maxlength="2000" placeholder="Ask about the AIDEX Lab…" required></textarea>
       <button class="send-btn" id="send" type="submit" aria-label="Send message">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
       </button>
@@ -113,6 +120,10 @@
       <input type="checkbox" id="memory-toggle" role="switch">
     </label>
 
+    <h3>Unclear questions</h3>
+    <p class="muted" id="clarify-style"></p>
+    <p class="muted small-print">Learned from how you respond. Say "just answer" or "ask me first" in the chat to change it.</p>
+
     <h3>What I've learned about you</h3>
     <form class="memory-add" id="memory-add">
       <label class="sr-only" for="memory-text">New memory</label>
@@ -131,10 +142,82 @@
     <ul class="memory-list" id="memory-list" aria-live="polite"></ul>
     <p class="muted empty" id="memory-empty">Nothing saved yet.</p>
 
+    <button class="danger-btn small-btn" type="button" id="memory-clear">Delete all memories</button>
+
+    <h3>Research study</h3>
+    <p class="muted" id="research-status"></p>
+    <button class="primary-btn small" type="button" id="research-join">Learn more and take part</button>
+    <button class="secondary-btn small-btn" type="button" id="research-withdraw" hidden>Withdraw from the study</button>
+
+    <h3>Your data</h3>
+    <p class="muted">Download everything stored about you, or delete your account and all of its data.</p>
+    <div class="button-row">
+      <a class="secondary-btn small-btn" href="/api/me/export" download>Download my data</a>
+      <button class="danger-btn small-btn" type="button" id="account-delete">Delete my account</button>
+    </div>
+
     <div class="drawer-foot">
-      <button class="danger-btn" type="button" id="memory-clear">Delete all memories</button>
       <button class="secondary-btn" type="button" id="logout-btn">Sign out</button>
     </div>
+  </dialog>
+
+  <!-- Research consent. Change CONSENT_VERSION in app/api_privacy.py whenever this text changes. -->
+  <dialog class="dialog consent" id="consent-dialog" aria-labelledby="consent-title">
+    <form id="consent-form">
+      <div class="dialog-head">
+        <h2 id="consent-title">Take part in the research study</h2>
+        <button class="close-btn" type="button" data-close aria-label="Close">&times;</button>
+      </div>
+      <p class="notice" id="consent-demo-notice">
+        <strong>Prototype only.</strong> Ethics approval for this study has not been confirmed yet.
+        Please use made-up details only and do not share real personal information.
+      </p>
+      <div class="info-sheet">
+        <h3>What is the study about?</h3>
+        <p>The AIDEX Lab studies how an AI assistant can learn each person's preferences
+          (for example, how detailed they like answers) and whether that makes it more helpful.</p>
+        <h3>What happens if I take part?</h3>
+        <ul>
+          <li>Your conversations with {{ASSISTANT_NAME}} are saved, together with the
+            memory items used and your thumbs up/down ratings.</li>
+          <li>Personal memory is switched on for you.</li>
+          <li>Records use a random ID, not your username.</li>
+        </ul>
+        <h3>Can I stop?</h3>
+        <p>Yes, at any time, without giving a reason. Withdrawing deletes your saved
+          conversations and research records straight away.</p>
+        <p class="muted">Information sheet version <span id="consent-version"></span></p>
+      </div>
+      <label class="check"><input type="checkbox" id="agree-information" required>
+        I have read the information above.</label>
+      <label class="check"><input type="checkbox" id="agree-logging" required>
+        I agree to my conversations being saved for research.</label>
+      <label class="check"><input type="checkbox" id="agree-withdrawal" required>
+        I understand I can withdraw at any time.</label>
+      <p class="form-error" id="consent-error" role="alert" hidden></p>
+      <div class="button-row end">
+        <button class="secondary-btn" type="button" data-close>Not now</button>
+        <button class="primary-btn" type="submit">I agree to take part</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Withdraw from the study -->
+  <dialog class="dialog" id="withdraw-dialog" aria-labelledby="withdraw-title">
+    <form id="withdraw-form">
+      <div class="dialog-head">
+        <h2 id="withdraw-title">Withdraw from the study?</h2>
+        <button class="close-btn" type="button" data-close aria-label="Close">&times;</button>
+      </div>
+      <p>Your saved conversations and research records will be deleted now. You can keep
+        using {{ASSISTANT_NAME}} as a normal student account.</p>
+      <label class="check"><input type="checkbox" id="withdraw-memory">
+        Also delete everything {{ASSISTANT_NAME}} has learned about me.</label>
+      <div class="button-row end">
+        <button class="secondary-btn" type="button" data-close>Cancel</button>
+        <button class="danger-btn" type="submit">Withdraw and delete</button>
+      </div>
+    </form>
   </dialog>
 
   <script src="/static/js/chat.js"></script>

@@ -1,4 +1,4 @@
-// AIDX Assistant: sign in / register and the "My account" memory panel.
+// AIDEX Assistant: sign in / register and the "My account" memory panel.
 //
 // All data comes from the JSON API (/api/auth/*, /api/me, /api/memory).
 // User-provided text is always inserted with textContent, never innerHTML.
@@ -56,7 +56,84 @@
       accountBtn.setAttribute("aria-label", "Sign in");
       accountBtn.title = "Sign in";
     }
+    renderResearch();
   }
+
+  // ---------- Research study (consent, banner, withdraw) ----------
+
+  function renderResearch() {
+    const participant = !!(currentUser && currentUser.is_participant);
+    const demo = !(currentUser && currentUser.ethics_approved);
+    $("research-banner").hidden = !participant;
+    $("research-banner-demo").hidden = !demo;
+    $("consent-demo-notice").hidden = !demo;
+    if (!currentUser) return;
+    $("research-join").hidden = participant;
+    $("research-withdraw").hidden = !participant;
+    $("research-status").textContent = participant
+      ? `You are taking part (since ${new Date(currentUser.consent_given_at).toLocaleDateString("en-AU",
+        { day: "numeric", month: "short", year: "numeric" })}). ` +
+        "Your conversations are saved for research."
+      : "You are not taking part. Nothing you type is saved word for word.";
+  }
+
+  let consentVersion = null;
+
+  $("research-join").addEventListener("click", async () => {
+    try {
+      consentVersion = (await api("GET", "/api/research/info")).consent_version;
+    } catch (err) { /* shown on submit */ }
+    $("consent-version").textContent = consentVersion || "?";
+    $("consent-form").reset();
+    showError($("consent-error"), "");
+    $("consent-dialog").showModal();
+  });
+
+  $("consent-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api("POST", "/api/research/consent", {
+        consent_version: consentVersion,
+        agree_information: $("agree-information").checked,
+        agree_logging: $("agree-logging").checked,
+        agree_withdrawal: $("agree-withdrawal").checked,
+      });
+      $("consent-dialog").close();
+      await openAccount();   // refreshes the profile and the panel
+    } catch (err) {
+      showError($("consent-error"), err.message);
+    }
+  });
+
+  $("research-withdraw").addEventListener("click", () => {
+    $("withdraw-form").reset();
+    $("withdraw-dialog").showModal();
+  });
+
+  $("withdraw-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api("POST", "/api/research/withdraw", { delete_memory: $("withdraw-memory").checked });
+      $("withdraw-dialog").close();
+      await openAccount();
+    } catch (err) {
+      showError($("memory-error"), err.message);
+    }
+  });
+
+  $("research-banner-manage").addEventListener("click", () => openAccount());
+
+  $("account-delete").addEventListener("click", async () => {
+    if (!confirm("Permanently delete your account and all of its data? This can't be undone.")) return;
+    try {
+      await api("DELETE", "/api/me");
+      setUser(null);
+      window.AIDX.clearConversation();
+      accountDialog.close();
+    } catch (err) {
+      showError($("memory-error"), err.message);
+    }
+  });
 
   accountBtn.addEventListener("click", () => {
     if (currentUser) openAccount();
@@ -114,12 +191,21 @@
     manual: "added by you",
     explicit_instruction: "you told me",
     correction: "from a correction",
-    inferred: "inferred",
+    inferred: "inferred from chat",
+  };
+  const CLARIFY_LABEL = {
+    ask: "I check with you first when a question is unclear.",
+    act: "I answer directly and state my assumption when a question is unclear.",
+    neutral: "I ask a short question only when something is really unclear.",
   };
 
   async function openAccount() {
+    // Refresh first: learned settings (e.g. clarify style) change as you chat.
+    try { setUser((await api("GET", "/api/me")).user); } catch (err) { /* keep old */ }
+    if (!currentUser) return openAuth();
     $("account-name").textContent = currentUser.username;
     $("memory-toggle").checked = currentUser.memory_enabled;
+    $("clarify-style").textContent = CLARIFY_LABEL[currentUser.clarify_style] || CLARIFY_LABEL.neutral;
     showError($("memory-error"), "");
     accountDialog.showModal();
     await loadMemory();
@@ -128,6 +214,7 @@
   $("memory-toggle").addEventListener("change", async (e) => {
     try {
       setUser(await api("PATCH", "/api/me", { memory_enabled: e.target.checked }));
+      $("clarify-style").textContent = CLARIFY_LABEL[currentUser.clarify_style] || CLARIFY_LABEL.neutral;
     } catch (err) {
       e.target.checked = !e.target.checked;  // undo the switch on failure
       showError($("memory-error"), err.message);
@@ -160,13 +247,19 @@
     badge.className = "badge " + item.category;
     badge.textContent = CATEGORY_LABEL[item.category] || item.category;
     const stats = document.createElement("span");
-    const n = item.times_retrieved;
+    const n = item.times_used;
     stats.textContent = `${SOURCE_LABEL[item.source] || item.source} · used in ${n} ${n === 1 ? "reply" : "replies"}` +
-      (item.active ? "" : " · paused");
+      ` · ${item.times_helpful} helpful · ${item.times_corrected} corrected`;
     meta.append(badge, stats);
 
     const text = document.createElement("p");
     text.textContent = item.rule_text;
+
+    // Explain why an item is switched off (by the user or by the automatic review).
+    const status = document.createElement("p");
+    status.className = "memory-status";
+    status.textContent = item.active ? "" : `Switched off: ${item.deactivation_reason || "paused"}`;
+    status.hidden = item.active;
 
     const actions = document.createElement("div");
     actions.className = "memory-actions";
@@ -185,7 +278,7 @@
       catch (err) { showError($("memory-error"), err.message); }
     });
 
-    li.append(meta, text, actions);
+    li.append(meta, text, status, actions);
     return li;
   }
 
@@ -243,6 +336,11 @@
     window.AIDX.clearConversation();
     accountDialog.close();
   });
+
+  // Let chat.js open this panel (the "Review" link on "Noted" messages).
+  window.AIDX.openAccount = () => currentUser && openAccount();
+  // ...and refresh state after an "Undo" on a learned memory.
+  window.AIDX.reloadMemory = () => accountDialog.open && loadMemory();
 
   // ---------- Start: am I already signed in? ----------
   api("GET", "/api/me").then((d) => setUser(d.user)).catch(() => setUser(null));

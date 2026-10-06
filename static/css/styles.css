@@ -1,4 +1,4 @@
-/* AIDX Assistant: chat page styles.
+/* AIDEX Assistant: chat page styles.
  *
  * All colours are CSS variables derived from the logo gradient. Components only
  * use the *semantic* tokens (--bg, --text, --bot-bubble, ...), so light/dark
@@ -79,6 +79,7 @@ body {
 a { color: var(--link); text-underline-offset: 2px; }
 button, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+[hidden] { display: none !important; }   /* "hidden" always wins over display rules */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* App shell: full-height column, centred on wide screens */
@@ -381,7 +382,208 @@ button, textarea { font: inherit; color: inherit; }
 
 /* Memory items shown under a bot reply */
 .sources h4 { margin: 6px 0 2px; font-size: .78rem; font-weight: 600; }
+.sources li a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.sources .source-icon { margin-right: 4px; }
+.sources .source-kind { opacity: .75; }
 
 @media (max-width: 600px) {
   .drawer { border-radius: 0; }
+}
+
+/* =====================================================================
+   Phase 3: learning notes, feedback buttons, memory status
+   ===================================================================== */
+
+/* "Noted for next time: ..." shown above a reply when a memory was learned */
+.learned-note {
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: .82rem;
+}
+
+/* Thumbs up/down under a reply */
+.feedback { display: flex; gap: 4px; margin-top: 4px; }
+.thumb {
+  display: grid; place-items: center;
+  width: 32px; height: 32px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .2s var(--ease), color .2s var(--ease);
+}
+.thumb svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.thumb:hover:not(:disabled) { background: var(--bot-bubble); color: var(--text); }
+.thumb:disabled { cursor: default; opacity: .45; }
+.thumb.chosen { opacity: 1; background: var(--cyan); color: var(--navy); }  /* navy on cyan */
+
+.memory-status { margin: 0 0 4px; font-size: .8rem; color: var(--text-muted); font-style: italic; }
+.small-print { font-size: .78rem; margin-top: 4px; }
+
+/* =====================================================================
+   Phase 4: research study, consent and data controls
+   ===================================================================== */
+
+/* Always-visible notice for participants, so logging is never hidden */
+.research-banner {
+  padding: 8px 16px;
+  background: var(--cyan);
+  color: var(--navy);                 /* navy on cyan ≈ 8.3:1 */
+  font-size: .85rem;
+}
+.research-banner .link-btn { color: var(--navy); font-weight: 600; }
+
+.consent { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  font-size: .88rem;
+}
+.info-sheet {
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  font-size: .9rem;
+}
+.info-sheet h3 { margin: 12px 0 4px; font-size: .92rem; }
+.info-sheet p, .info-sheet ul { margin: 0 0 8px; }
+.check { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; font-size: .92rem; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--royal); flex-shrink: 0; }
+
+.button-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.button-row.end { justify-content: flex-end; margin-top: 12px; }
+.small-btn { padding: 8px 12px; font-size: .88rem; text-decoration: none; display: inline-block; }
+#memory-clear { margin-top: 12px; }
+
+/* =====================================================================
+   Phase 5: admin dashboard
+   Chart colours were checked with a colour-blindness validator against
+   both surfaces (light: white, dark: #00104A).
+   ===================================================================== */
+:root {
+  --viz-intent: #0068C8;      /* series 1: intent calibration */
+  --viz-domain: #0E9AA8;      /* series 2: domain knowledge */
+  --viz-track:  #EEF3FA;
+}
+:root[data-theme="dark"] {
+  --viz-intent: #3A86E0;
+  --viz-domain: #139A8C;
+  --viz-track:  #0A1E5E;
+}
+
+body.admin { background: var(--bg); }
+.admin-shell { max-width: 1200px; margin: 0 auto; }
+.admin-header { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+/* Sign-in card with the lab logo */
+.admin-login { min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+.login-card {
+  width: min(380px, 100%);
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.login-card h1 { margin: 4px 0 0; font-size: 1.3rem; }
+.login-card p { margin: 0; }
+.login-logo { width: 200px; height: auto; margin: 0 auto 4px; }
+.login-card label { display: flex; flex-direction: column; gap: 4px; text-align: left; font-weight: 500; font-size: .9rem; }
+.login-card input {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--bg); color: var(--text); font: inherit;
+}
+
+.dash { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.dash-notice { border-radius: var(--radius-md); margin: 0; }
+.panel {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.panel h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.kpi.hero { border-top: 4px solid var(--cyan); }
+.kpi-label { font-size: .8rem; color: var(--text-muted); font-weight: 500; }
+.kpi-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi-note { font-size: .78rem; color: var(--text-muted); }
+
+/* Legend */
+.legend { display: flex; gap: 14px; font-size: .82rem; color: var(--text-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.swatch.intent, .hbar.intent { background: var(--viz-intent); }
+.swatch.domain, .hbar.domain { background: var(--viz-domain); }
+
+/* Horizontal bar charts (two small multiples side by side) */
+.twin { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 16px; }
+.twin figure { margin: 0; }
+.twin figcaption { font-size: .85rem; font-weight: 600; margin-bottom: 8px; }
+.hbar-row { display: grid; grid-template-columns: 130px 1fr 44px; align-items: center; gap: 8px; margin: 6px 0; }
+.hbar-label { font-size: .82rem; color: var(--text-muted); }
+.hbar-track { height: 22px; }
+.hbar { height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; transition: width .4s var(--ease); }
+.hbar-value { font-size: .85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Vertical bars by day */
+.vbars { display: flex; align-items: flex-end; gap: 8px; height: 200px; padding-top: 18px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.vbar-col { flex: 1 0 34px; max-width: 64px; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.vbar-area { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.vbar { width: 70%; min-height: 2px; background: var(--viz-intent); border-radius: 4px 4px 0 0; }
+.vbar-value { font-size: .75rem; font-weight: 600; margin-bottom: 2px; }
+.vbar-label { font-size: .72rem; color: var(--text-muted); padding: 4px 0; white-space: nowrap; }
+.hbar:focus-visible, .vbar:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Tables */
+.table-scroll { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.data-table th, .data-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+.data-table th { font-size: .78rem; color: var(--text-muted); font-weight: 600; }
+.data-table td { font-variant-numeric: tabular-nums; }
+
+/* Tooltip */
+.viz-tooltip {
+  position: absolute; z-index: 10; pointer-events: none;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--navy);
+  color: var(--white);
+  font-size: .8rem;
+  box-shadow: var(--shadow);
+}
+:root[data-theme="dark"] .viz-tooltip { background: var(--white); color: var(--navy); }
+
+@media (max-width: 600px) {
+  .dash { padding: 10px; }
+  .hbar-row { grid-template-columns: 100px 1fr 40px; }
+  .kpi.hero { grid-column: 1 / -1; }
+  .grid-2 { grid-template-columns: 1fr; }
 }
