@@ -1,6 +1,6 @@
 // AIDEX Assistant: chat page behaviour (plain JavaScript, no framework).
 //
-// Flow: user types -> POST /api/chat -> show reply + its sources.
+// Flow: user types -> POST /api/chat -> show the reply.
 // The server remembers the conversation via a session cookie, so this script
 // only needs to send the newest message.
 
@@ -12,41 +12,6 @@
   const input = document.getElementById("input");
   const sendBtn = document.getElementById("send");
   const welcome = document.getElementById("welcome");
-
-  // ---------- Sources ----------
-
-  // Icon and label for each kind of source the server returns.
-  const SOURCE_KINDS = {
-    publication: ["📄", "Publication"],
-    person: ["👤", "Person"],
-    theme: ["🔬", "Research theme"],
-    overview: ["📚", "Overview"],
-    page: ["🌐", "Lab website"],
-  };
-
-  // One row of the Sources panel: icon, title (a link only for https URLs), kind.
-  // Everything is set with textContent, so a title can never inject markup.
-  function sourceRow(source) {
-    const [iconText, label] = SOURCE_KINDS[source.kind] || ["•", "Source"];
-    const icon = document.createElement("span");
-    icon.className = "source-icon";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = iconText;
-
-    const safeUrl = typeof source.url === "string" && source.url.startsWith("https://");
-    const name = document.createElement(safeUrl ? "a" : "span");
-    if (safeUrl) {
-      name.href = source.url;
-      name.target = "_blank";
-      name.rel = "noopener noreferrer";
-    }
-    name.textContent = source.title || "Untitled";
-
-    const kind = document.createElement("span");
-    kind.className = "source-kind";
-    kind.textContent = ` · ${label}`;
-    return [icon, name, kind];
-  }
 
   // ---------- Safe rendering ----------
 
@@ -97,8 +62,8 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // `info` (bot replies only) is the API response: sources, memory_used,
-  // learned and exchange_id.
+  // `info` (bot replies only) is the API response: memory_used, learned and
+  // exchange_id.
   function addMessage(role, text, info) {
     if (welcome) welcome.hidden = true;
     info = info || {};
@@ -138,35 +103,21 @@
     else bubble.innerHTML = renderMarkdown(text);
     msg.appendChild(bubble);
 
-    // Show what the answer was based on (explainability): lab documents and,
-    // for signed-in users, which of their personal memory items were used.
-    const sources = info.sources || [];
+    // Explainability for signed-in users: which of their personal memory items
+    // shaped this answer.
     const memoryUsed = info.memory_used || [];
-    if (sources.length || memoryUsed.length) {
+    if (memoryUsed.length) {
       const details = document.createElement("details");
       details.className = "sources";
       const summary = document.createElement("summary");
-      const parts = [];
-      if (sources.length) parts.push(`Sources (${sources.length})`);
-      if (memoryUsed.length) parts.push(`Your memory (${memoryUsed.length})`);
-      summary.textContent = parts.join(" · ");
-      details.appendChild(summary);
-
-      const addList = (title, rows) => {
-        if (!rows.length) return;
-        const h = document.createElement("h4");
-        h.textContent = title;
-        const list = document.createElement("ul");
-        rows.forEach((row) => {
-          const li = document.createElement("li");
-          if (typeof row === "string") li.textContent = row;   // never interpreted as HTML
-          else li.append(...row);                              // nodes built by sourceRow()
-          list.appendChild(li);
-        });
-        details.append(h, list);
-      };
-      addList("Lab sources", sources.map(sourceRow));
-      addList("Your memory", memoryUsed.map((m) => m.rule_text));
+      summary.textContent = `Your memory (${memoryUsed.length})`;
+      const list = document.createElement("ul");
+      memoryUsed.forEach((m) => {
+        const li = document.createElement("li");
+        li.textContent = m.rule_text;   // textContent: never interpreted as HTML
+        list.appendChild(li);
+      });
+      details.append(summary, list);
       msg.appendChild(details);
     }
 

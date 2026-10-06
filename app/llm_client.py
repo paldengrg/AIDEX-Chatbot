@@ -34,6 +34,8 @@ def complete(system: str, messages: list[dict], max_tokens: int | None = None,
         return _mock_complete(system)
     if settings.llm_provider == "anthropic":
         return _anthropic_complete(system, messages, max_tokens, model)
+    if settings.llm_provider == "ollama":
+        return _ollama_complete(system, messages, max_tokens, model)
     raise LLMError(f"Unknown LLM_PROVIDER '{settings.llm_provider}'")
 
 
@@ -63,6 +65,30 @@ def _anthropic_complete(system: str, messages: list[dict], max_tokens: int, mode
 
     # A reply is a list of content blocks; we only need the text ones.
     return "".join(b.text for b in response.content if b.type == "text").strip()
+
+
+# --- Ollama (local open models such as Gemma) ---------------------------------
+
+def _ollama_complete(system: str, messages: list[dict], max_tokens: int, model: str) -> str:
+    """Call a model served on this machine by Ollama (https://ollama.com), e.g. gemma2:2b."""
+    if not model:
+        raise LLMError("LLM_MODEL must be set in .env (for example gemma2:2b)")
+
+    import httpx
+
+    try:
+        response = httpx.post(f"{settings.ollama_url}/api/chat", timeout=180, json={
+            "model": model,
+            "messages": [{"role": "system", "content": system}] + messages,
+            "stream": False,
+            # Ollama's default context window is small and silently cuts long
+            # prompts; Gemma 2 can read up to 8k tokens.
+            "options": {"num_predict": max_tokens, "num_ctx": 8192},
+        })
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise LLMError(f"Ollama: {exc}") from exc
+    return response.json()["message"]["content"].strip()
 
 
 # --- Mock --------------------------------------------------------------------

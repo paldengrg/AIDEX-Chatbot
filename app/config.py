@@ -35,6 +35,8 @@ class Settings:
     # Falls back to LLM_MODEL when not set.
     llm_fast_model: str = os.getenv("LLM_FAST_MODEL", "") or os.getenv("LLM_MODEL", "")
     llm_max_tokens: int = _int("LLM_MAX_TOKENS", 800)
+    # Where Ollama listens when LLM_PROVIDER=ollama (local models such as Gemma).
+    ollama_url: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
     # Retrieval (RAG)
     data_dir: Path = BASE_DIR / "data"
