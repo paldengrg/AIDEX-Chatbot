@@ -1,6 +1,6 @@
 """Run the evaluation set and report accuracy.
 
-    python -m eval.run_eval            # uses the LLM settings in .env (costs a little)
+    python -m eval.run_eval            # uses the model set in .env (Gemma by default)
     python -m eval.run_eval --mock     # free, offline: checks the plumbing only
 
 Each question in eval/questions.json runs as a fresh user of the right tier

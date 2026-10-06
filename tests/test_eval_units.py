@@ -13,8 +13,8 @@ def test_min_matches_and_banned_words():
     case = {"check": "keywords", "any": ["safety", "privacy", "fairness"], "min_matches": 2}
     assert score(case, {"reply": "Safety and privacy."})[0]
     assert not score(case, {"reply": "Safety only."})[0]
-    banned = {"check": "keywords", "any": ["assistant"], "none": ["Claude"]}
-    assert not score(banned, {"reply": "I'm Claude, an assistant"})[0]
+    banned = {"check": "keywords", "any": ["assistant"], "none": ["Gemma"]}
+    assert not score(banned, {"reply": "I'm Gemma, an assistant"})[0]
 
 
 def test_behaviour_checks():

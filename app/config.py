@@ -26,14 +26,13 @@ class Settings:
     # Branding: the only place the assistant's name is defined.
     assistant_name: str = os.getenv("ASSISTANT_NAME", "AIDEX Assistant")
 
-    # LLM provider. "anthropic" uses the real API; "mock" returns canned
-    # answers built from the retrieved documents (free, used by the tests).
-    llm_provider: str = os.getenv("LLM_PROVIDER", "anthropic")
-    llm_api_key: str = os.getenv("LLM_API_KEY", "")
-    llm_model: str = os.getenv("LLM_MODEL", "")
-    # Optional cheaper/faster model for background jobs like memory extraction.
+    # LLM provider. "ollama" runs a local model such as Gemma; "mock" returns
+    # canned answers built from the retrieved documents (used by the tests).
+    llm_provider: str = os.getenv("LLM_PROVIDER", "ollama")
+    llm_model: str = os.getenv("LLM_MODEL", "gemma2:2b")
+    # Optional smaller/faster model for background jobs like memory extraction.
     # Falls back to LLM_MODEL when not set.
-    llm_fast_model: str = os.getenv("LLM_FAST_MODEL", "") or os.getenv("LLM_MODEL", "")
+    llm_fast_model: str = os.getenv("LLM_FAST_MODEL", "") or os.getenv("LLM_MODEL", "gemma2:2b")
     llm_max_tokens: int = _int("LLM_MAX_TOKENS", 800)
     # Where Ollama listens when LLM_PROVIDER=ollama (local models such as Gemma).
     ollama_url: str = os.getenv("OLLAMA_URL", "http://localhost:11434")

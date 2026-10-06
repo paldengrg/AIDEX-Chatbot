@@ -5,9 +5,10 @@ never imports a vendor SDK directly, so switching provider (or model) only
 means changing this file and the .env values.
 
 Providers:
-  - "anthropic": the Anthropic Claude API (model + key from .env)
-  - "mock":      no network, no cost. Echoes the most relevant retrieved
-                 document so the app and tests run without an API key.
+  - "ollama": a model running on this computer through Ollama, such as
+              gemma2:2b (free, no API key; the model name comes from .env)
+  - "mock":   no model at all. Echoes the most relevant retrieved document so
+              the app and tests run without Ollama.
 """
 
 import re
@@ -16,7 +17,7 @@ from app.config import settings
 
 
 class LLMError(RuntimeError):
-    """Raised when the model cannot produce a reply (bad key, network, ...)."""
+    """Raised when the model cannot produce a reply (Ollama not running, ...)."""
 
 
 def complete(system: str, messages: list[dict], max_tokens: int | None = None,
@@ -32,39 +33,9 @@ def complete(system: str, messages: list[dict], max_tokens: int | None = None,
 
     if settings.llm_provider == "mock":
         return _mock_complete(system)
-    if settings.llm_provider == "anthropic":
-        return _anthropic_complete(system, messages, max_tokens, model)
     if settings.llm_provider == "ollama":
         return _ollama_complete(system, messages, max_tokens, model)
     raise LLMError(f"Unknown LLM_PROVIDER '{settings.llm_provider}'")
-
-
-# --- Anthropic -------------------------------------------------------------
-
-_client = None  # created lazily so importing this module never needs a key
-
-
-def _anthropic_complete(system: str, messages: list[dict], max_tokens: int, model: str) -> str:
-    global _client
-    if not settings.llm_api_key or not model:
-        raise LLMError("LLM_API_KEY and LLM_MODEL must be set in .env")
-
-    import anthropic  # imported here so the mock provider needs no SDK
-
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.llm_api_key)
-    try:
-        response = _client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=messages,
-        )
-    except anthropic.APIError as exc:
-        raise LLMError(str(exc)) from exc
-
-    # A reply is a list of content blocks; we only need the text ones.
-    return "".join(b.text for b in response.content if b.type == "text").strip()
 
 
 # --- Ollama (local open models such as Gemma) ---------------------------------

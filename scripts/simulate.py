@@ -2,7 +2,7 @@
 
     python -m scripts.simulate                 # free: offline mock model, 7 days
     python -m scripts.simulate --days 10       # more simulated days
-    python -m scripts.simulate --real          # use the real LLM from .env (costs a little)
+    python -m scripts.simulate --real          # use the real model from .env (Gemma by default)
     python -m scripts.simulate --reset         # delete earlier simulated users first
 
 Five made-up users (usernames start with "sim_") with distinct communication
