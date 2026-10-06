@@ -1,7 +1,7 @@
 # Part 1: Structured knowledge base — design
 
 Date: 2026-10-07
-Status: draft, awaiting review
+Status: approved 2026-10-07; section 5 updated after content research (see Open items)
 
 ## Context
 
@@ -79,7 +79,7 @@ list:
 | `type` | string | `journal_article`, `edited_book`, `book_chapter`, `conference_paper` or `preprint` |
 | `venue` | string | Full venue text from the citation |
 | `url` | string | DOI, publisher, arXiv, SSRN or Google Scholar link from the site; must be `https://` |
-| `themes` | list of theme ids | At least one; drafted then reviewed (see section 5) |
+| `themes` | list of theme ids | At least one; from the website's theme panels (see section 5) |
 | `abstract` | string or null | Official abstract, word for word; `null` if not found |
 | `abstract_source` | string or null | URL the abstract was taken from; `null` exactly when `abstract` is `null` |
 
@@ -93,6 +93,9 @@ list:
 | `bio` | string | From the site |
 | `author_names` | list of strings | How the person appears in `authors`, e.g. `["Hussain, W."]` |
 | `links` | object | Any of `profile`, `scholar`, `linkedin`; each `https://` |
+
+`people.json` may also have a top-level `note` (e.g. that more team members are
+coming), which is added to the people overview entry.
 
 There is no `interests` field. The site lists none for the Director, so a
 person's themes are **worked out from the theme tags of their papers** instead.
@@ -145,7 +148,7 @@ by their opening lines. The full text still goes to the model once retrieved.
 
 ### 3. Indexing and retrieval (`app/rag.py`)
 
-**Ingest** stores each entry with metadata `{kind, id, title, url, source}`.
+**Ingest** stores each entry under its id, with metadata `{kind, title, url, source}`.
 
 **Automatic rebuild.** `ingest()` saves a fingerprint in the collection metadata:
 a SHA-256 over every `data/*.md` and `data/*.json` file (relative path plus bytes)
@@ -164,8 +167,9 @@ retrieval tests (see Testing), and the final values are recorded in the plan.
 
 ### 4. Prompt, sources and UI
 
-**Prompt** (`chat.build_system_prompt`): document tags carry the new metadata,
-with every value escaped:
+**Prompt** (`chat.build_system_prompt`): document tags carry the new metadata.
+Double quotes in values become single quotes so a title can't break the tag;
+`&` is kept as-is so links the model repeats still work:
 
 ```
 <document kind="publication" title="The Human Layer of Agentic AI Memory…" url="https://doi.org/…">
@@ -176,7 +180,7 @@ with every value escaped:
 No rule changes in the prompt; Part 2 decides how the model cites. The mock
 provider's pattern in `llm_client._mock_complete` is updated to match the new tag.
 
-**Sources** (`chat.answer`): de-duplicated by entry id, each
+**Sources** (`chat.answer`): de-duplicated by `(title, url)`, each
 `{kind, title, url, source}`.
 
 **UI** (`static/js/chat.js`): the Sources panel lists each source as a small icon
@@ -196,18 +200,20 @@ Rule: every field comes from a page that can be pointed to, or it stays empty.
    for URLs or citations.
 2. **Abstracts.** For each paper, open its URL and extract the abstract from the
    raw page: `citation_abstract`, `dc.description` or `og:description` metadata,
-   or arXiv's abstract block. For the three papers with only a Google Scholar
-   link, search for the exact title and accept an official page (publisher,
-   IEEE Xplore, arXiv, SSRN) only if the title matches exactly. If the page
-   blocks access or nothing matches, `abstract` stays `null`. Never store a
-   paraphrase.
-3. **Theme tags.** Draft from title and abstract, then show the user a table
-   (paper → themes, one line of reasoning each) before writing the file.
-   **This is a review checkpoint during the build.**
+   or arXiv's abstract block. If the publisher page blocks scripted access, the
+   publisher's own abstract as deposited with Crossref (`api.crossref.org`, the
+   official DOI registry) is also accepted. For papers with only a Google
+   Scholar link, search for the exact title and accept an official source only
+   if the title matches exactly. If nothing is available, `abstract` stays
+   `null`. Never store a paraphrase; only markup and typographic hyphens
+   (U+2011) are normalised.
+3. **Theme tags.** Taken from the lab website's own theme panels: the `THEMES`
+   list in https://aidxlab.github.io/script.js links each theme to its related
+   publications. No tags are drafted by hand.
 4. **Conflicts.** Where the site and the current markdown disagree, the site wins
    and the difference is reported to the user. Known case: the two ICCETM
    conference papers are listed as 2026 on the site and 2025 in
-   `publications.md`.
+   `publications.md`; 2026 is used.
 
 ## Testing
 
@@ -253,12 +259,17 @@ them is agreed with the user first.
   all passing the checks; the three replaced markdown files are gone.
 - Every publication has an `https` URL taken from the site; every abstract is
   word for word with its source URL, or `null`.
-- Theme tags have been reviewed by the user.
+- Theme tags match the website's theme panels.
 - Editing any file in `data/` causes a rebuild on the next start.
 - All unit, retrieval and API tests pass; `eval --mock` runs without errors.
 - The Sources panel shows readable titles with working links.
 
 ## Open items
 
-- ICCETM papers' year: 2025 or 2026 (default: follow the site).
-- Which abstracts can be retrieved is only known once collection runs.
+- Resolved: ICCETM papers use 2026, as on the site.
+- Resolved: official abstracts were available for 3 of 11 papers (JMO via
+  Cambridge, EMFE via arXiv, LLM–MCDM via Crossref). Springer, IEEE,
+  ScienceDirect and SSRN pages block scripted access and Crossref holds no
+  abstract for the rest, so 8 papers are citation only.
+- Not in scope: the website calls the lab "AIDEX Lab" while this app uses
+  "AIDX". Bios in `people.json` avoid the lab's name until this is decided.
