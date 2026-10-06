@@ -2,7 +2,7 @@
 
 # Research themes
 
-The AIDX Lab organises its work into five research themes.
+The AIDEX Lab organises its work into five research themes.
 
 ## 1. Decision Intelligence and Human-AI Collaboration
 Advancing systems that help people make better decisions, with humans and AI

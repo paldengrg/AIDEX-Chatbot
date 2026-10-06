@@ -120,7 +120,7 @@ def export_my_data(user: User = Depends(require_user), db: Session = Depends(get
         ],
     }
     return JSONResponse(data, headers={
-        "Content-Disposition": 'attachment; filename="aidx-my-data.json"'})
+        "Content-Disposition": 'attachment; filename="aidex-my-data.json"'})
 
 
 @router.delete("/me", status_code=204)

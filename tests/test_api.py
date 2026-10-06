@@ -19,7 +19,7 @@ def client():
 def test_home_page_shows_assistant_name(client):
     res = client.get("/")
     assert res.status_code == 200
-    assert "AIDX Assistant" in res.text
+    assert "AIDEX Assistant" in res.text
     assert "{{ASSISTANT_NAME}}" not in res.text
 
 

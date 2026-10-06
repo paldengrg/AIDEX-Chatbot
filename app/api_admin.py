@@ -108,4 +108,4 @@ def export_csv(table: str, db: Session = Depends(get_db)) -> Response:
     writer.writeheader()
     writer.writerows(loader(db))
     return Response(buffer.getvalue(), media_type="text/csv", headers={
-        "Content-Disposition": f'attachment; filename="aidx-{table}.csv"'})
+        "Content-Disposition": f'attachment; filename="aidex-{table}.csv"'})

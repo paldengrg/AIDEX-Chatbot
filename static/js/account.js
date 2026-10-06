@@ -1,4 +1,4 @@
-// AIDX Assistant: sign in / register and the "My account" memory panel.
+// AIDEX Assistant: sign in / register and the "My account" memory panel.
 //
 // All data comes from the JSON API (/api/auth/*, /api/me, /api/memory).
 // User-provided text is always inserted with textContent, never innerHTML.

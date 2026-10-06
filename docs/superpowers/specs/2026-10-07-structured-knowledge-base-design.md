@@ -5,8 +5,8 @@ Status: approved 2026-10-07; section 5 updated after content research (see Open 
 
 ## Context
 
-The AIDX Assistant is being reshaped into an evidence-grounded research concierge:
-it helps visitors find out what the AIDX Lab researches, who does it, what they
+The AIDEX Assistant is being reshaped into an evidence-grounded research concierge:
+it helps visitors find out what the AIDEX Lab researches, who does it, what they
 have published and how to get involved. The work is split into four parts, each
 with its own spec, plan and build:
 
@@ -130,9 +130,9 @@ the file, item id and problem):
 | `publication` | `publication:<id>` | Title; theme names; authors; year, type, venue; abstract, or "Citation only: no abstract available." | `url` | `publications.json` |
 | `person` | `person:<id>` | Name and role; themes (from their papers, most frequent first); bio; all their papers as "title (year)" | `links.profile`, else `links.scholar`, else site `#people` | `people.json` |
 | `theme` | `theme:<id>` | Number and name; description; every paper tagged with it; people who authored those papers | site `#research` | `themes.json` |
-| `overview` | `overview:publications` | "AIDX Lab publications (N total)", then titles and years grouped by type | site `#publications` | `publications.json` |
+| `overview` | `overview:publications` | "AIDEX Lab publications (N total)", then titles and years grouped by type | site `#publications` | `publications.json` |
 | `overview` | `overview:people` | All people with roles | site `#people` | `people.json` |
-| `overview` | `overview:themes` | "AIDX Lab research themes (5)", then each name and description | site `#research` | `themes.json` |
+| `overview` | `overview:themes` | "AIDEX Lab research themes (5)", then each name and description | site `#research` | `themes.json` |
 | `page` | `<file>#<n>` | Markdown section, chunked as today by `chunk_markdown` | site anchor for the file (below) | file name |
 
 Page anchors: `about.md` → `#about`, `join-and-contact.md` → `#join`,
@@ -271,5 +271,5 @@ them is agreed with the user first.
   Cambridge, EMFE via arXiv, LLM–MCDM via Crossref). Springer, IEEE,
   ScienceDirect and SSRN pages block scripted access and Crossref holds no
   abstract for the rest, so 8 papers are citation only.
-- Not in scope: the website calls the lab "AIDEX Lab" while this app uses
-  "AIDX". Bios in `people.json` avoid the lab's name until this is decided.
+- Resolved: the lab is "AIDEX" everywhere, matching the website and logo
+  (renamed before Part 1; internal names such as `aidx.db` and cookies unchanged).

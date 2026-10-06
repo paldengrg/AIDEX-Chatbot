@@ -10,7 +10,7 @@ from html import escape
 from app import llm_client, rag
 from app.config import settings
 
-SYSTEM_TEMPLATE = """You are {name}, the AI assistant on the website of the AIDX Lab \
+SYSTEM_TEMPLATE = """You are {name}, the AI assistant on the website of the AIDEX Lab \
 (AI for Decision Excellence) at the Peter Faber Business School, Australian Catholic \
 University, North Sydney.
 

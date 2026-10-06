@@ -19,7 +19,7 @@
 - Do not change the system prompt's rules or tone; that is Part 2. Only the `<document>` tag format changes.
 - Keep each source's `source` key equal to the data file name (`people.json`, `about.md`); the research log and analytics rely on it.
 - User-visible text in the browser is inserted with `textContent`, never `innerHTML`.
-- Data-file bios do not name the lab (the website says "AIDEX", the app says "AIDX"; undecided).
+- The lab is "AIDEX" in all user-facing text. Internal names (`aidx.db`, `aidx_session`, `aidx_documents`, `window.AIDX`) and the site URL `aidxlab.github.io` stay as they are.
 - Stage only the files each task lists. The working tree also holds the user's own uncommitted work.
 - Commit messages end with: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
 
@@ -432,7 +432,7 @@ These were generated on 2026-10-07 from the site's HTML, the theme panels in the
       "id": "walayat-hussain",
       "name": "Associate Professor Walayat Hussain",
       "role": "Director",
-      "bio": "Director of the lab and Head of Discipline, Information Technology and Systems, Peter Faber Business School, Australian Catholic University. More than two decades of experience across academia and industry, with over 90 publications including ERA A* and A ranked venues. Associate Editor of IET Communications, International Journal of Web Information Systems and Forecasting, and a Fellow of the European Alliance for Innovation.",
+      "bio": "Director of the AIDEX Lab and Head of Discipline, Information Technology and Systems, Peter Faber Business School, Australian Catholic University. More than two decades of experience across academia and industry, with over 90 publications including ERA A* and A ranked venues. Associate Editor of IET Communications, International Journal of Web Information Systems and Forecasting, and a Fellow of the European Alliance for Innovation.",
       "author_names": ["Hussain, W."],
       "links": {"profile": "https://www.acu.edu.au/research-and-enterprise/our-people/walayat-hussain", "scholar": "https://scholar.google.com/citations?hl=en&user=HaA3MowAAAAJ", "linkedin": "https://www.linkedin.com/in/walayat-hussain-3104317a/"}
     },
@@ -610,7 +610,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 DATA = Path(r"C:\UNI Folders\ITEC 320\AIDEX\data")
-UA = {"User-Agent": "AIDX-Assistant-content-check/1.0"}
+UA = {"User-Agent": "AIDEX-Assistant-content-check/1.0"}
 get = lambda u: urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=30).read().decode("utf-8")
 text = lambda f: re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", f))).strip()
 
@@ -773,14 +773,14 @@ def test_overviews_list_everything(tmp_path):
     write_data(tmp_path, note="More team members are coming.")
     entries = entries_by_id(tmp_path)
     pubs = entries["overview:publications"].text
-    assert pubs.startswith("AIDX Lab publications (2 in total)")
+    assert pubs.startswith("AIDEX Lab publications (2 in total)")
     assert "Book chapters:\n- Paper A (2026)" in pubs
     assert "Preprints:\n- Paper B (2025)" in pubs
     people = entries["overview:people"].text
     assert "- Prof Director: Director\n- PhD Student: PhD Candidate" in people
     assert people.endswith("More team members are coming.")
     themes = entries["overview:themes"].text
-    assert themes.startswith("AIDX Lab research themes (2)")
+    assert themes.startswith("AIDEX Lab research themes (2)")
     assert "1. Agentic AI: Agents that adapt.\n2. AI for Learning: AI in education." in themes
 
 
@@ -969,15 +969,15 @@ def _theme_entry(kb: Knowledge, theme: dict) -> Entry:
 
 
 def _overview_entries(kb: Knowledge) -> list[Entry]:
-    pubs = [f"AIDX Lab publications ({len(kb.publications)} in total)"]
+    pubs = [f"AIDEX Lab publications ({len(kb.publications)} in total)"]
     for type_id, (_, plural) in PUBLICATION_TYPES.items():
         group = [p for p in kb.publications if p["type"] == type_id]
         if group:
             pubs.append(f"{plural}:")
             pubs.extend(_paper_line(p) for p in group)
-    people = [f"AIDX Lab people ({len(kb.people)} listed)"]
+    people = [f"AIDEX Lab people ({len(kb.people)} listed)"]
     people.extend(f"- {p['name']}: {p['role']}" for p in kb.people)
-    themes = [f"AIDX Lab research themes ({len(kb.themes)})"]
+    themes = [f"AIDEX Lab research themes ({len(kb.themes)})"]
     themes.extend(f"{t['number']}. {t['name']}: {t['description']}"
                   for t in sorted(kb.themes, key=lambda t: t["number"]))
     for lines, name in ((pubs, "publications.json"), (people, "people.json"),

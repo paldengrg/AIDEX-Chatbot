@@ -1,4 +1,4 @@
-// AIDX Assistant: chat page behaviour (plain JavaScript, no framework).
+// AIDEX Assistant: chat page behaviour (plain JavaScript, no framework).
 //
 // Flow: user types -> POST /api/chat -> show reply + its sources.
 // The server remembers the conversation via a session cookie, so this script

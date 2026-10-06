@@ -1,1 +1,1 @@
-"""AIDX Assistant: a chatbot prototype for the AIDX Lab."""
+"""AIDEX Assistant: a chatbot prototype for the AIDEX Lab."""

@@ -37,7 +37,7 @@ PERSONAS = {
         "days": [
             ["From now on please keep answers short.", "Who leads the lab?"],
             ["Just answer, don't ask me questions. What are the research themes?"],
-            ["What does AIDX stand for?", "How can I join?"],
+            ["What does AIDEX stand for?", "How can I join?"],
             ["Please always use bullet points.", "What publications are there?"],
             ["Where is the lab?", "Who is Md Nazmul Hossain?"],
         ],

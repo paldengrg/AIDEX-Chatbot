@@ -3,7 +3,7 @@
 # People
 
 ## Associate Professor Walayat Hussain — Director
-Associate Professor Walayat Hussain is the Director of the AIDX Lab and Head of
+Associate Professor Walayat Hussain is the Director of the AIDEX Lab and Head of
 Discipline, Information Technology and Systems, at the Peter Faber Business School,
 ACU. He has more than 20 years of experience and over 90 publications in ERA A*
 and A-ranked venues. He is an Associate Editor for IET Communications, the

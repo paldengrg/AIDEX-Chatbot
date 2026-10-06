@@ -49,7 +49,7 @@ CRISIS = re.compile(
 
 INJECTION_REPLY = (
     "I can't change how I work or share my internal instructions, but I'm happy to "
-    "help with questions about the AIDX Lab, its research, people or opportunities."
+    "help with questions about the AIDEX Lab, its research, people or opportunities."
 )
 
 CRISIS_REPLY = (

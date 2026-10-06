@@ -24,7 +24,7 @@ def _int(name: str, default: int) -> int:
 @dataclass(frozen=True)
 class Settings:
     # Branding: the only place the assistant's name is defined.
-    assistant_name: str = os.getenv("ASSISTANT_NAME", "AIDX Assistant")
+    assistant_name: str = os.getenv("ASSISTANT_NAME", "AIDEX Assistant")
 
     # LLM provider. "anthropic" uses the real API; "mock" returns canned
     # answers built from the retrieved documents (free, used by the tests).
