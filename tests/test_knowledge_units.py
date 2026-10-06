@@ -143,3 +143,132 @@ def test_real_data_keeps_accented_names_and_dashes():
     assert "215–266" in jmo["venue"]
     mcdm = next(p for p in kb.publications if p["id"] == "credibility-weighted-llm-mcdm")
     assert "LLM–MCDM" in mcdm["title"]
+
+
+# --- Relationships ------------------------------------------------------------------
+
+def test_person_is_matched_to_exactly_their_papers(data_dir):
+    kb = knowledge.load(data_dir)
+    director, student = kb.people
+    assert [p["id"] for p in knowledge.papers_by(kb, director)] == ["paper-a", "paper-b"]
+    assert [p["id"] for p in knowledge.papers_by(kb, student)] == ["paper-a"]
+
+
+def test_person_themes_come_from_their_papers_most_frequent_first(data_dir):
+    kb = knowledge.load(data_dir)
+    director, student = kb.people
+    # Director: learning is on 2 papers, agentic on 1.
+    assert knowledge.person_themes(kb, director) == ["AI for Learning", "Agentic AI"]
+    # Student: one paper with both themes, so ties keep theme order.
+    assert knowledge.person_themes(kb, student) == ["Agentic AI", "AI for Learning"]
+
+
+# --- Search entries -------------------------------------------------------------------
+
+def entries_by_id(folder):
+    return {e.id: e for e in knowledge.build_entries(folder)}
+
+
+def test_publication_entry_starts_with_title_and_themes(data_dir):
+    e = entries_by_id(data_dir)["publication:paper-a"]
+    lines = e.text.splitlines()
+    assert lines[0] == "Publication: Paper A"
+    assert lines[1] == "Research themes: Agentic AI, AI for Learning"
+    assert lines[2] == "Authors: Hossain, M. N.; Hussain, W."
+    assert lines[3] == "Book chapter, 2026. Some Book."
+    assert lines[4] == "Abstract: We study agents."
+    assert (e.kind, e.title, e.url, e.source) == (
+        "publication", "Paper A", "https://doi.org/10.1/a", "publications.json")
+
+
+def test_edited_book_lists_editors(tmp_path):
+    pubs = copy.deepcopy(PUBLICATIONS)
+    pubs[1]["type"] = "edited_book"
+    write_data(tmp_path, publications=pubs)
+    assert "Editors: Hussain, W." in entries_by_id(tmp_path)["publication:paper-b"].text
+
+
+def test_paper_without_abstract_is_marked_citation_only(data_dir):
+    text = entries_by_id(data_dir)["publication:paper-b"].text
+    assert text.splitlines()[-1] == "Citation only: no abstract available."
+
+
+def test_person_entry_lists_all_their_papers_and_links_best_profile(data_dir):
+    entries = entries_by_id(data_dir)
+    director = entries["person:director"]
+    assert director.text.startswith("Prof Director, Director\n")
+    assert "Research themes (from their publications): AI for Learning, Agentic AI" in director.text
+    assert "Publications (2):\n- Paper A (2026)\n- Paper B (2025)" in director.text
+    assert director.url == "https://example.edu/director"           # profile first
+    assert entries["person:student"].url == "https://scholar.example/s"  # then scholar
+
+
+def test_person_without_papers_or_links_still_builds(tmp_path):
+    newcomer = {"id": "new", "name": "New Member", "role": "Research assistant",
+                "bio": "Joined recently.", "author_names": ["Nobody, X."], "links": {}}
+    write_data(tmp_path, people=[*PEOPLE, newcomer])
+    e = entries_by_id(tmp_path)["person:new"]
+    assert "No publications listed yet." in e.text
+    assert "Research themes" not in e.text
+    assert e.url == knowledge.SITE_URL + "#people"
+
+
+def test_theme_entry_lists_its_papers_and_people(data_dir):
+    e = entries_by_id(data_dir)["theme:agentic-ai"]
+    assert e.text.startswith("Research theme 1: Agentic AI\nAgents that adapt.")
+    assert "Publications in this theme (1):\n- Paper A (2026)" in e.text
+    assert "Paper B" not in e.text
+    assert "Lab members with publications in this theme: Prof Director, PhD Student" in e.text
+    assert (e.kind, e.url, e.source) == ("theme", knowledge.SITE_URL + "#research", "themes.json")
+
+
+def test_overviews_list_everything(tmp_path):
+    write_data(tmp_path, note="More team members are coming.")
+    entries = entries_by_id(tmp_path)
+    pubs = entries["overview:publications"].text
+    assert pubs.startswith("AIDEX Lab publications (2 in total)")
+    assert "Book chapters:\n- Paper A (2026)" in pubs
+    assert "Preprints:\n- Paper B (2025)" in pubs
+    people = entries["overview:people"].text
+    assert "- Prof Director: Director\n- PhD Student: PhD Candidate" in people
+    assert people.endswith("More team members are coming.")
+    themes = entries["overview:themes"].text
+    assert themes.startswith("AIDEX Lab research themes (2)")
+    assert "1. Agentic AI: Agents that adapt.\n2. AI for Learning: AI in education." in themes
+
+
+def test_markdown_pages_become_page_entries_with_site_links(data_dir):
+    (data_dir / "about.md").write_text(
+        "<!-- editor note -->\n# About\n\n## Mission\nBetter decisions.\n", encoding="utf-8")
+    (data_dir / "extra.md").write_text("# Extra\n\nSome text.\n", encoding="utf-8")
+    entries = entries_by_id(data_dir)
+    about = entries["about.md#0"]
+    assert (about.kind, about.title, about.url, about.source) == (
+        "page", "Mission", knowledge.SITE_URL + "#about", "about.md")
+    assert about.text == "About > Mission\nBetter decisions."
+    assert entries["extra.md#0"].url == knowledge.SITE_URL  # unknown page -> site root
+
+
+def test_real_data_entries_are_unique_linked_and_complete():
+    entries = knowledge.build_entries(settings.data_dir)
+    assert len({e.id for e in entries}) == len(entries)
+    assert all(e.url.startswith("https://") for e in entries)
+    assert {e.kind for e in entries} == {"publication", "person", "theme", "overview", "page"}
+    walayat = next(e for e in entries if e.id == "person:walayat-hussain")
+    assert "Publications (11):" in walayat.text
+
+
+# --- Fingerprint ------------------------------------------------------------------
+
+def test_fingerprint_changes_only_when_data_changes(data_dir):
+    (data_dir / "news.md").write_text("# News\n\n## Event\nA boot camp.\n", encoding="utf-8")
+    before = knowledge.fingerprint(data_dir)
+    assert knowledge.fingerprint(data_dir) == before
+    (data_dir / "news.md").write_text("# News\n\n## Event\nTwo boot camps.\n", encoding="utf-8")
+    assert knowledge.fingerprint(data_dir) != before
+
+
+def test_fingerprint_changes_with_index_version(data_dir, monkeypatch):
+    before = knowledge.fingerprint(data_dir)
+    monkeypatch.setattr(knowledge, "INDEX_VERSION", "test")
+    assert knowledge.fingerprint(data_dir) != before

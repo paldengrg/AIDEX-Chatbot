@@ -8,14 +8,35 @@ data/ holds two kinds of content:
 load() reads and checks the records, so a typo in a data file stops the app
 with a clear message instead of quietly weakening the answers.
 
+build_entries() turns records and pages into a flat list of Entry objects;
+rag.py stores each one in the search index. Besides one entry per record it
+adds three "overview" entries (all papers, all people, all themes), so list
+questions such as "what has the lab published?" get a complete answer instead
+of only the few records that happen to be closest to the question.
+
 Pure Python (no ChromaDB), so everything here is quick to unit test.
 """
 
+import hashlib
 import json
+import re
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
 SITE_URL = "https://aidxlab.github.io/"
+
+# Bump this when the way entries are built changes: the index is then rebuilt
+# on the next start even though no data file changed.
+INDEX_VERSION = "2"
+
+# Where each markdown page lives on the lab website (its citation link).
+PAGE_URLS = {
+    "about.md": SITE_URL + "#about",
+    "join-and-contact.md": SITE_URL + "#join",
+    "news.md": SITE_URL + "#news",
+    "human-layer-paper.md": "https://doi.org/10.1007/978-3-032-31204-4_3",
+}
 
 # type id -> (singular label, plural label)
 PUBLICATION_TYPES = {
@@ -43,6 +64,17 @@ TYPE_NAMES = {str: "text", int: "a whole number", list: "a list", dict: "an obje
 
 class KnowledgeError(ValueError):
     """A data file is missing, malformed or inconsistent."""
+
+
+@dataclass
+class Entry:
+    """One item in the search index."""
+    id: str      # unique, e.g. "publication:emfe-malaria" or "about.md#0"
+    kind: str    # "publication" | "person" | "theme" | "overview" | "page"
+    title: str   # shown to users as the source's name
+    url: str     # citation link, always https://
+    source: str  # data file it came from, e.g. "publications.json"
+    text: str    # embedded for search and shown to the model
 
 
 @dataclass
@@ -137,3 +169,169 @@ def _check_people(kb: Knowledge) -> None:
                 raise KnowledgeError(f"{label}: unknown link '{kind}' "
                                      f"(allowed: {', '.join(LINK_KINDS)})")
             _check_url(label, url)
+
+
+# --- Relationships worked out from the records -------------------------------
+
+def papers_by(kb: Knowledge, person: dict) -> list[dict]:
+    """The person's publications: those listing one of their author_names."""
+    names = set(person["author_names"])
+    return [p for p in kb.publications if names & set(p["authors"])]
+
+
+def _theme_names(kb: Knowledge, theme_ids) -> list[str]:
+    names = {t["id"]: t["name"] for t in kb.themes}
+    return [names[t] for t in theme_ids]
+
+
+def person_themes(kb: Knowledge, person: dict) -> list[str]:
+    """Theme names of the person's papers, most frequent first (ties: theme number)."""
+    counts = Counter(t for p in papers_by(kb, person) for t in p["themes"])
+    number = {t["id"]: t["number"] for t in kb.themes}
+    return _theme_names(kb, sorted(counts, key=lambda t: (-counts[t], number[t])))
+
+
+# --- Search entries ------------------------------------------------------------
+# Titles, theme names and headings come first in every entry: the embedding
+# model only reads about the first 200 words, so that is what search matches.
+
+def _paper_line(p: dict) -> str:
+    return f"- {p['title']} ({p['year']})"
+
+
+def _publication_entry(kb: Knowledge, p: dict) -> Entry:
+    singular, _ = PUBLICATION_TYPES[p["type"]]
+    who = "Editors" if p["type"] == "edited_book" else "Authors"
+    abstract = (f"Abstract: {p['abstract']}" if p["abstract"]
+                else "Citation only: no abstract available.")
+    text = "\n".join([
+        f"Publication: {p['title']}",
+        f"Research themes: {', '.join(_theme_names(kb, p['themes']))}",
+        f"{who}: {'; '.join(p['authors'])}",
+        f"{singular}, {p['year']}. {p['venue']}",
+        abstract,
+    ])
+    return Entry(f"publication:{p['id']}", "publication", p["title"], p["url"],
+                 "publications.json", text)
+
+
+def _person_entry(kb: Knowledge, person: dict) -> Entry:
+    papers = papers_by(kb, person)
+    themes = person_themes(kb, person)
+    lines = [f"{person['name']}, {person['role']}"]
+    if themes:
+        lines.append(f"Research themes (from their publications): {', '.join(themes)}")
+    lines.append(person["bio"])
+    if papers:
+        lines.append(f"Publications ({len(papers)}):")
+        lines.extend(_paper_line(p) for p in papers)
+    else:
+        lines.append("No publications listed yet.")
+    links = person["links"]
+    url = links.get("profile") or links.get("scholar") or SITE_URL + "#people"
+    return Entry(f"person:{person['id']}", "person", person["name"], url, "people.json",
+                 "\n".join(lines))
+
+
+def _theme_entry(kb: Knowledge, theme: dict) -> Entry:
+    papers = [p for p in kb.publications if theme["id"] in p["themes"]]
+    paper_ids = {p["id"] for p in papers}
+    people = [person["name"] for person in kb.people
+              if any(p["id"] in paper_ids for p in papers_by(kb, person))]
+    lines = [f"Research theme {theme['number']}: {theme['name']}", theme["description"]]
+    if papers:
+        lines.append(f"Publications in this theme ({len(papers)}):")
+        lines.extend(_paper_line(p) for p in papers)
+    if people:
+        lines.append(f"Lab members with publications in this theme: {', '.join(people)}")
+    return Entry(f"theme:{theme['id']}", "theme", theme["name"], SITE_URL + "#research",
+                 "themes.json", "\n".join(lines))
+
+
+def _overview_entries(kb: Knowledge) -> list[Entry]:
+    pubs = [f"AIDEX Lab publications ({len(kb.publications)} in total)"]
+    for type_id, (_, plural) in PUBLICATION_TYPES.items():
+        group = [p for p in kb.publications if p["type"] == type_id]
+        if group:
+            pubs.append(f"{plural}:")
+            pubs.extend(_paper_line(p) for p in group)
+    people = [f"AIDEX Lab people ({len(kb.people)} listed)"]
+    people.extend(f"- {p['name']}: {p['role']}" for p in kb.people)
+    themes = [f"AIDEX Lab research themes ({len(kb.themes)})"]
+    themes.extend(f"{t['number']}. {t['name']}: {t['description']}"
+                  for t in sorted(kb.themes, key=lambda t: t["number"]))
+    for lines, name in ((pubs, "publications.json"), (people, "people.json"),
+                        (themes, "themes.json")):
+        if name in kb.notes:
+            lines.append(kb.notes[name])
+    return [
+        Entry("overview:publications", "overview", "All publications",
+              SITE_URL + "#publications", "publications.json", "\n".join(pubs)),
+        Entry("overview:people", "overview", "All people",
+              SITE_URL + "#people", "people.json", "\n".join(people)),
+        Entry("overview:themes", "overview", "All research themes",
+              SITE_URL + "#research", "themes.json", "\n".join(themes)),
+    ]
+
+
+def chunk_markdown(text: str, source: str) -> list[Entry]:
+    """Split a markdown page into one entry per '#'/'##' section.
+
+    The page title is prefixed to every section, so a section like "## Contact"
+    still carries its context ("Join the lab and contact us").
+    """
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)  # drop editor notes
+    url = PAGE_URLS.get(source, SITE_URL)
+
+    title = ""
+    entries: list[Entry] = []
+    heading, lines = "", []
+
+    def flush():
+        body = "\n".join(lines).strip()
+        if body:
+            label = f"{title} > {heading}" if heading and heading != title else title
+            entries.append(Entry(
+                id=f"{source}#{len(entries)}",
+                kind="page",
+                title=heading or title or source,
+                url=url,
+                source=source,
+                text=f"{label}\n{body}" if label else body,
+            ))
+
+    for line in text.splitlines():
+        match = re.match(r"^(#{1,2})\s+(.*)", line)
+        if match:
+            flush()
+            lines = []
+            heading = match.group(2).strip()
+            if match.group(1) == "#":
+                title = heading
+        else:
+            lines.append(line)
+    flush()
+    return entries
+
+
+def build_entries(data_dir: Path) -> list[Entry]:
+    """Every search entry: records, overviews and markdown page sections.
+
+    Raises KnowledgeError if a record file is broken.
+    """
+    kb = load(data_dir)
+    entries = [_publication_entry(kb, p) for p in kb.publications]
+    entries += [_person_entry(kb, p) for p in kb.people]
+    entries += [_theme_entry(kb, t) for t in kb.themes]
+    entries += _overview_entries(kb)
+    for path in sorted(data_dir.glob("*.md")):
+        entries += chunk_markdown(path.read_text(encoding="utf-8"), path.name)
+    return entries
+
+
+def fingerprint(data_dir: Path) -> str:
+    """A hash of every data file plus INDEX_VERSION: changes whenever the index is out of date."""
+    digest = hashlib.sha256(INDEX_VERSION.encode())
+    for path in sorted([*data_dir.glob("*.json"), *data_dir.glob("*.md")]):
+        digest.update(path.name.encode("utf-8") + b"\0" + path.read_bytes() + b"\0")
+    return digest.hexdigest()
