@@ -382,6 +382,9 @@ button, textarea { font: inherit; color: inherit; }
 
 /* Memory items shown under a bot reply */
 .sources h4 { margin: 6px 0 2px; font-size: .78rem; font-weight: 600; }
+.sources li a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.sources .source-icon { margin-right: 4px; }
+.sources .source-kind { opacity: .75; }
 
 @media (max-width: 600px) {
   .drawer { border-radius: 0; }

@@ -13,6 +13,41 @@
   const sendBtn = document.getElementById("send");
   const welcome = document.getElementById("welcome");
 
+  // ---------- Sources ----------
+
+  // Icon and label for each kind of source the server returns.
+  const SOURCE_KINDS = {
+    publication: ["📄", "Publication"],
+    person: ["👤", "Person"],
+    theme: ["🔬", "Research theme"],
+    overview: ["📚", "Overview"],
+    page: ["🌐", "Lab website"],
+  };
+
+  // One row of the Sources panel: icon, title (a link only for https URLs), kind.
+  // Everything is set with textContent, so a title can never inject markup.
+  function sourceRow(source) {
+    const [iconText, label] = SOURCE_KINDS[source.kind] || ["•", "Source"];
+    const icon = document.createElement("span");
+    icon.className = "source-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = iconText;
+
+    const safeUrl = typeof source.url === "string" && source.url.startsWith("https://");
+    const name = document.createElement(safeUrl ? "a" : "span");
+    if (safeUrl) {
+      name.href = source.url;
+      name.target = "_blank";
+      name.rel = "noopener noreferrer";
+    }
+    name.textContent = source.title || "Untitled";
+
+    const kind = document.createElement("span");
+    kind.className = "source-kind";
+    kind.textContent = ` · ${label}`;
+    return [icon, name, kind];
+  }
+
   // ---------- Safe rendering ----------
 
   // Escape HTML first so a reply can never inject markup or scripts,
@@ -122,14 +157,15 @@
         const h = document.createElement("h4");
         h.textContent = title;
         const list = document.createElement("ul");
-        rows.forEach((text) => {
+        rows.forEach((row) => {
           const li = document.createElement("li");
-          li.textContent = text;   // textContent: never interpreted as HTML
+          if (typeof row === "string") li.textContent = row;   // never interpreted as HTML
+          else li.append(...row);                              // nodes built by sourceRow()
           list.appendChild(li);
         });
         details.append(h, list);
       };
-      addList("Lab documents", sources.map((s) => `${s.heading} (${s.source})`));
+      addList("Lab sources", sources.map(sourceRow));
       addList("Your memory", memoryUsed.map((m) => m.rule_text));
       msg.appendChild(details);
     }
