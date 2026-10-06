@@ -17,7 +17,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 # Allowed values, kept in one place so the API and UI can reuse them.
-TIERS = ("student", "participant")
 CATEGORIES = ("intent_calibration", "domain_knowledge")
 SOURCES = ("explicit_instruction", "correction", "inferred", "manual")
 
