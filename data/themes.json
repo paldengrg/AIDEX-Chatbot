@@ -1,0 +1,36 @@
+{
+  "retrieved_from": "https://aidxlab.github.io/ (research section and script.js theme panels)",
+  "retrieved_on": "2026-10-07",
+  "items": [
+    {
+      "id": "decision-intelligence",
+      "number": 1,
+      "name": "Decision Intelligence & Human-AI Collaboration",
+      "description": "Advancing AI systems that support better human decision-making."
+    },
+    {
+      "id": "trustworthy-ai",
+      "number": 2,
+      "name": "Trustworthy AI & Governance",
+      "description": "Building responsible, explainable, fair, and accountable AI."
+    },
+    {
+      "id": "agentic-ai",
+      "number": 3,
+      "name": "Agentic AI & Adaptive Systems",
+      "description": "Developing intelligent agents that can reason, adapt, and collaborate safely."
+    },
+    {
+      "id": "learning",
+      "number": 4,
+      "name": "AI for Learning & Capability Development",
+      "description": "Enhancing education, assessment, and personalised learning through AI."
+    },
+    {
+      "id": "organisations-society",
+      "number": 5,
+      "name": "AI for Organisations & Society",
+      "description": "Applying AI to create measurable impact across business, education, government, and communities."
+    }
+  ]
+}
