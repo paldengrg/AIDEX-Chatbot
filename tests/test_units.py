@@ -2,7 +2,7 @@
 
 from app.chat import build_system_prompt, retrieval_query
 from app.config import settings
-from app.rag import chunk_markdown, load_chunks
+from app.knowledge import build_entries, chunk_markdown
 from app.session_memory import SessionStore
 
 SAMPLE = """<!-- editor note: should be removed -->
@@ -20,7 +20,7 @@ North Sydney campus.
 
 def test_chunks_one_per_section_with_title_context():
     chunks = chunk_markdown(SAMPLE, "join.md")
-    assert [c.heading for c in chunks] == ["Internships", "Contact"]
+    assert [c.title for c in chunks] == ["Internships", "Contact"]
     assert chunks[1].text.startswith("Join the lab > Contact")
     assert chunks[0].id == "join.md#0"
 
@@ -29,10 +29,10 @@ def test_html_comments_are_removed():
     assert all("editor note" not in c.text for c in chunk_markdown(SAMPLE, "x.md"))
 
 
-def test_real_data_folder_has_chunks():
-    chunks = load_chunks(settings.data_dir)
-    assert len(chunks) > 10
-    assert len({c.id for c in chunks}) == len(chunks)  # ids are unique
+def test_real_data_folder_has_entries():
+    entries = build_entries(settings.data_dir)
+    assert len(entries) > 10
+    assert len({e.id for e in entries}) == len(entries)  # ids are unique
 
 
 # --- Session memory ---------------------------------------------------------
@@ -80,11 +80,22 @@ def test_reset_forgets_session():
 # --- Prompt building ----------------------------------------------------------
 
 def test_prompt_contains_documents_and_identity_rule():
-    prompt = build_system_prompt([{"source": "people.md", "text": "Director info"}])
-    assert '<document source="people.md">' in prompt
+    doc = {"kind": "person", "title": "Walayat Hussain", "url": "https://example.edu/wh",
+           "source": "people.json", "text": "Director info"}
+    prompt = build_system_prompt([doc])
+    assert '<document kind="person" title="Walayat Hussain" url="https://example.edu/wh">' in prompt
     assert "Director info" in prompt
     assert settings.assistant_name in prompt
     assert "Do not name any AI vendor" in prompt
+
+
+def test_prompt_tag_survives_quotes_and_keeps_ampersands_in_links():
+    doc = {"kind": "publication", "title": 'The "Human Layer" & memory',
+           "url": "https://scholar.google.com/citations?hl=en&user=X",
+           "source": "publications.json", "text": "Paper text"}
+    prompt = build_system_prompt([doc])
+    assert ('<document kind="publication" title="The \'Human Layer\' & memory" '
+            'url="https://scholar.google.com/citations?hl=en&user=X">') in prompt
 
 
 def test_prompt_handles_no_documents():

@@ -5,7 +5,6 @@ the evaluation scripts later without starting a server.
 """
 
 import re
-from html import escape
 
 from app import llm_client, rag
 from app.config import settings
@@ -56,11 +55,21 @@ CLARIFY_RULES = {
 USED_LINE = re.compile(r"\n?\s*USED_MEMORY:\s*(.*?)\s*$", re.IGNORECASE)
 
 
+def _attr(value: str) -> str:
+    """Make a value safe inside a double-quoted tag attribute.
+
+    Double quotes become single quotes so a title can't break out of the tag;
+    '&' is left alone so links the model repeats still work.
+    """
+    return value.replace('"', "'").replace("\n", " ")
+
+
 def build_system_prompt(docs: list[dict], memories: list[dict] | None = None,
                         clarify_style: str = "neutral") -> str:
     if docs:
         documents = "\n".join(
-            f'<document source="{escape(d["source"])}">\n{d["text"]}\n</document>'
+            f'<document kind="{_attr(d["kind"])}" title="{_attr(d["title"])}" '
+            f'url="{_attr(d["url"])}">\n{d["text"]}\n</document>'
             for d in docs
         )
     else:
@@ -115,8 +124,9 @@ def answer(message: str, history: list[dict], memories: list[dict] | None = None
     # De-duplicated list of sources to show under the reply.
     sources, seen = [], set()
     for d in docs:
-        key = (d["source"], d["heading"])
+        key = (d["title"], d["url"])
         if key not in seen:
             seen.add(key)
-            sources.append({"source": d["source"], "heading": d["heading"]})
+            sources.append({"kind": d["kind"], "title": d["title"], "url": d["url"],
+                            "source": d["source"]})
     return reply, sources, used_ids

@@ -73,7 +73,7 @@ def _mock_complete(system: str) -> str:
     If the prompt lists personal memory items, pretend the first one was
     applied (so usage tracking can be tested without an API key).
     """
-    match = re.search(r'<document source="[^"]*">\s*(.*?)\s*</document>', system, re.S)
+    match = re.search(r'<document [^>]*>\s*(.*?)\s*</document>', system, re.S)
     if match:
         reply = "(mock reply) " + match.group(1)[:400]
     else:

@@ -40,7 +40,7 @@ class Settings:
     data_dir: Path = BASE_DIR / "data"
     # Relative paths are resolved from the project root; absolute paths are kept.
     chroma_dir: Path = BASE_DIR / os.getenv("CHROMA_DIR", "chroma_data")
-    rag_top_k: int = _int("RAG_TOP_K", 4)
+    rag_top_k: int = _int("RAG_TOP_K", 6)
 
     # Anonymous session memory
     session_max_turns: int = _int("SESSION_MAX_TURNS", 10)
